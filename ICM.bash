@@ -1,10 +1,8 @@
 #!/bin/bash
 # Internet Connection Monitor - nelbren@nelbren.com @ 2024-07-26
 setVariables() {
-  checkSpace
-  setBin
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=1.8
+  MY_VERSION=1.9
   TIME_INTERVAL=2
   #TIME_TOTAL=3600
   TIME_ELAPSED=0
@@ -16,34 +14,81 @@ setVariables() {
   MY_COUNT=0
   count
   RUNNING=1
+  getOSType
+  checkSpace
+  setBin
   setLogs
   trap logEnd INT
   getNameGit
 }
+getOSType() {
+  OS=""
+  case "$OSTYPE" in
+    linux*)
+      OS=LINUX;;
+    darwin*)
+      USERNAME=$USER
+      OS=MACOS;;
+      #arch=$(uname -m)
+      #if [ "$arch" = "x86_64" ]; then
+      #  echo "Sistema operativo: macOS (Intel)"
+      #elif [ "$arch" = "arm64" ]; then
+      #  echo "Sistema operativo: macOS (Apple Silicon)"
+      #else
+      #  echo "Sistema operativo: macOS (arquitectura desconocida)"
+      #fi
+    msys*)
+      OS=WINDOWS;;
+    cygwin*)
+      OS=WINDOWS;;
+    *)
+      echo "Sistema operativo desconocido: $OSTYPE"
+      exit 1;;
+  esac
+}
 checkSpace() {
   MINIMUM=5 # G
-  avail=$(df -h / --output=avail | tail -1 | cut -d"G" -f1)
+  if [ $OS == "WINDOWS" ]; then
+    avail=$(df -h / --output=avail | tail -1 | cut -d"G" -f1)
+  else
+    avail=$(df -h / | tail -1)
+    avail=$(echo $avail | cut -d" " -f4 | cut -d"G" -f1)
+  fi
   avail=$(echo $avail)
   if [ $avail -lt $MINIMUM ]; then
     echo "Please free up more available space (Minimum ${MINIMUM}G, Current ${avail}G)"
-    exit 1
+    exit 2
   fi
 }
 setBin() {
-  MY_URL=https://nelbren.com/unitec/
   MY_DIR_BIN=.bin
+  MY_URL=https://nelbren.com/unitec/
   if [ ! -d $MY_DIR_BIN ]; then
     mkdir $MY_DIR_BIN
   fi
-  MY_NCMD=$MY_DIR_BIN/nircmdc.exe
-  if [ ! -r $MY_NCMD ]; then
-    curl -s $MY_URL/nircmdc.exe -o $MY_NCMD
-    #ls -lh $MY_NCMD
+  if [ "$OS" == "WINDOWS" ]; then
+    NCMD=nircmdc.exe
+    MY_NCMD=$MY_DIR_BIN/$NCMD
+    if [ ! -r $MY_NCMD ]; then
+      curl -s $MY_URL/$NCMD -o $MY_NCMD
+      #ls -lh $MY_NCMD
+    fi
+    NHV=BrowsingHistoryView.exe
+    MY_BHV=$MY_DIR_BIN/$NHV
+    if [ ! -r $MY_BHV ]; then
+      curl -s $MY_URL/$NHV -o $MY_BHV
+      #ls -lh $MY_BHV
+    fi
   fi
-  MY_BHV=$MY_DIR_BIN/BrowsingHistoryView.exe
-  if [ ! -r $MY_BHV ]; then
-    curl -s $MY_URL/BrowsingHistoryView.exe -o $MY_BHV
-    #ls -lh $MY_BHV
+  SOUND=dial-up-modem-02.mp3
+  MY_SOUND=$MY_DIR_BIN/$SOUND
+  if [ ! -r $MY_SOUND ]; then
+    curl -s $MY_URL/$SOUND -o $MY_SOUND
+    #ls -lh $MY_SOUND
+  fi
+  if [ ! -r $MY_SOUND ]; then
+    echo "I can't connect to the Internet to download the required files!"
+    exit 4
   fi
 }
 setLogs() {
@@ -95,11 +140,16 @@ getName() {
   fi
 }
 getNameGit() {
-  name=$(git config user.name | tr "[ ]" "[_]")
+  NAME=$(git config user.name)
+  if [ -z "$NAME" ]; then
+    echo "Configure the git config!"
+    exit 3
+  fi
+  name=$(echo $NAME | tr "[ ]" "[_]")
   email=$(git config user.email)
   name="${name}($email)"
 }
-airplane() {
+getMACWindows() {
   set +m
   shopt -s lastpipe
   interfaces=$(powershell -Command "Get-NetAdapter | Select MacAddress, Status | ft -HideTableHeaders")
@@ -130,27 +180,40 @@ airplane() {
   echo "$resumen"
 }
 logBegin() {
-  echo -e "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅" | tee -a $MY_FILE_LOG
+  #echo -e "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅" | tee -a $MY_FILE_LOG
+  printf "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅\n" | tee -a $MY_FILE_LOG
 }
 logEnd() {
   RUNNING=0
   count
-  echo -e "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎" | tee -a $MY_FILE_LOG
+  #echo -e "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎" | tee -a $MY_FILE_LOG
+  printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎\n" | tee -a $MY_FILE_LOG
   archive
 }
-info() {
-  etiqueta="$1"
-  ip=$(ipconfig | grep -a IPv4 | cut -d":" -f2)
+getNetwork() {
+  if [ "$OS" == "WINDOWS" ]; then
+    ip=$(ipconfig | grep -a IPv4 | cut -d":" -f2)
+    data=$(ipconfig.exe //all | grep Physical | cut -d":" -f2)
+    macs=$(echo $data)
+    #macs=$(getMACWindows)
+  elif [ "$OS" == "MACOS" ]; then
+    interface=$(route -n get default | grep interface | cut -d":" -f2)
+    data=$(ifconfig $interface | grep -w inet)
+    ip=$(echo $data | cut -d" " -f2)
+    data=$(ifconfig $interface | grep -w ether)
+    macs=$(echo $data | cut -d" " -f2)
+  fi
   if [ -z "$ip" ]; then
     ip="-"
   fi
   ip=$(echo $ip)
   ip=$(echo $ip | tr "[ ]" "[,]")
-  #echo "($ip)"
-  macs=$(airplane)
-  #macs="01=UP"
-
-  echo $(timestamp $etiqueta)\|$$\|$(md5)\|${MY_VERSION}\|${HOSTNAME}\|${USERNAME}\|${name}\|${ip}\|${macs}
+  #echo "IP: $ip MAC: $macs"
+}
+info() {
+  etiqueta="$1"
+  getNetwork
+  echo $(timestamp $etiqueta)\|$myPidStr\|$(md5)\|${MY_VERSION}\|${HOSTNAME}\|${USERNAME}\|${name}\|${ip}\|${macs}
 }
 addCurlGoogle() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_GOOGLE.txt"
@@ -169,7 +232,13 @@ takeNetstat() {
 }
 takePing() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_PING.txt"
-  ping -n 1 google.com > $MY_FILE_LOG_TEMP
+  if [ "$OS" == "WINDOWS" ]; then
+    ping -n 1 google.com > $MY_FILE_LOG_TEMP
+  elif [ "$OS" == "MACOS" ]; then
+    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+  else
+    echo "$OS -> ping undefined" > $MY_FILE_LOG_TEMP
+  fi
   temp0=$(cat $MY_FILE_LOG_TEMP)
   temp1="\n${Iy} ping -n 1 google.com${S}\n${nY}${temp0}\n"
   temp="${temp}${temp1}"
@@ -185,16 +254,28 @@ takeIpInfo() {
 }
 takeScreenshot() {  
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
-  $MY_NCMD cmdwait 0 savescreenshot $EVIDENCE_FILE
-  echo -en "${nY}📷${S}"
+  if [ "$OS" == "WINDOWS" ]; then
+    $MY_NCMD cmdwait 0 savescreenshot $EVIDENCE_FILE
+  elif [ "$OS" == "MACOS" ]; then
+    screencapture -x $EVIDENCE_FILE
+  else
+    echo "$OS -> screenshot undefined" > $MY_FILE_LOG_TEMP
+  fi
+  #printf "${nY}📷${S}"
   temp0=$(cat $MY_FILE_LOG_TEMP)
   temp1="${Iy} 📷 SCREENSHOT: ${EVIDENCE_FILE}${S}\n${nY}${temp0}\n"
   temp=$temp1
 }
 takeClipboard() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_CLIPBOARD.txt"
-  $MY_NCMD clipboard addfile $EVIDENCE_FILE
-  echo -en "${nY}📋${S}"
+  if [ "$OS" == "WINDOWS" ]; then
+    $MY_NCMD clipboard addfile $EVIDENCE_FILE
+  elif [ "$OS" == "MACOS" ]; then
+    pbpaste > $EVIDENCE_FILE
+  else
+    echo "$OS -> clipboard undefined" > $MY_FILE_LOG_TEMP
+  fi
+  #printf "${nY}📋${S}"
   temp0=$(cat $MY_FILE_LOG_TEMP)
   temp1="${Iy} 📋 CLIPBOARD: ${EVIDENCE_FILE}${S}\n${nY}${temp0}\n"
   temp=$temp1
@@ -202,6 +283,16 @@ takeClipboard() {
 takeExternalEvidence() {
   curl -s https://nelbren.com/$info3 --connect-timeout 2 -m 2 2>&1 | >/dev/null
 }
+playSound() {
+  phrase="$NAME has access to the internet"
+  if [ "$OS" == "WINDOWS" ]; then
+    $MY_NCMD mediaplay 10000 $MY_SOUND
+    $MY_NCMD speak text "$phrase"
+  elif [ "$OS" == "MACOS" ]; then
+    afplay $MY_SOUND
+    say -v Whisper "$phrase"
+  fi
+ }
 evidence() {
   MY_DIR_EVIDENCE_LOG="${MY_DIR_PID_LOG}/evidence/"
   if [ ! -d $MY_DIR_EVIDENCE_LOG ]; then
@@ -230,14 +321,14 @@ checkInternet() {
   if $internet; then
     evidence $MY_FILE_LOG_TEMP
     info1=$(info "↓")
-    echo -e "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> $MY_FILE_LOG
+    printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> $MY_FILE_LOG
     info2=$(info "→")
-    echo -e "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌" | tee -a $MY_FILE_LOG
+    printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" | tee -a $MY_FILE_LOG
     info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
-    #echo "($info3)"
-    takeExternalEvidence
+    playSound
+    #takeExternalEvidence
   else
-    echo -e "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅" | tee -a $MY_FILE_LOG
+    printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
   fi
 }
 archive() {
