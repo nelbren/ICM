@@ -1,8 +1,8 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2024-07-26
+# Internet Connection Monitor - nelbren@nelbren.com @ 2024-07-27
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=1.9
+  MY_VERSION=2.0
   TIME_INTERVAL=2
   #TIME_TOTAL=3600
   TIME_ELAPSED=0
@@ -73,12 +73,12 @@ setBin() {
       curl -s $MY_URL/$NCMD -o $MY_NCMD
       #ls -lh $MY_NCMD
     fi
-    NHV=BrowsingHistoryView.exe
-    MY_BHV=$MY_DIR_BIN/$NHV
-    if [ ! -r $MY_BHV ]; then
-      curl -s $MY_URL/$NHV -o $MY_BHV
-      #ls -lh $MY_BHV
-    fi
+    #NHV=BrowsingHistoryView.exe
+    #MY_BHV=$MY_DIR_BIN/$NHV
+    #if [ ! -r $MY_BHV ]; then
+    #  curl -s $MY_URL/$NHV -o $MY_BHV
+    #  #ls -lh $MY_BHV
+    #fi
   fi
   SOUND=dial-up-modem-02.mp3
   MY_SOUND=$MY_DIR_BIN/$SOUND
@@ -192,28 +192,30 @@ logEnd() {
 }
 getNetwork() {
   if [ "$OS" == "WINDOWS" ]; then
-    ip=$(ipconfig | grep -a IPv4 | cut -d":" -f2)
-    data=$(ipconfig.exe //all | grep Physical | cut -d":" -f2)
+    ips=$(ipconfig | grep -a IPv4 | cut -d":" -f2)
+    data=$(ipconfig.exe //all | grep -aE "Physical|sica" | cut -d":" -f2)
     macs=$(echo $data)
     #macs=$(getMACWindows)
   elif [ "$OS" == "MACOS" ]; then
     interface=$(route -n get default | grep interface | cut -d":" -f2)
     data=$(ifconfig $interface | grep -w inet)
-    ip=$(echo $data | cut -d" " -f2)
+    ips=$(echo $data | cut -d" " -f2)
     data=$(ifconfig $interface | grep -w ether)
     macs=$(echo $data | cut -d" " -f2)
   fi
-  if [ -z "$ip" ]; then
-    ip="-"
+  if [ -z "$ips" ]; then
+    ips="-"
   fi
-  ip=$(echo $ip)
-  ip=$(echo $ip | tr "[ ]" "[,]")
+  ips=$(echo $ips)
+  ips=$(echo $ips | tr "[ ]" "[,]")
+  macs=$(echo $macs)
+  macs=$(echo $macs | tr "[ ]" "[,]")
   #echo "IP: $ip MAC: $macs"
 }
 info() {
   etiqueta="$1"
   getNetwork
-  echo $(timestamp $etiqueta)\|$myPidStr\|$(md5)\|${MY_VERSION}\|${HOSTNAME}\|${USERNAME}\|${name}\|${ip}\|${macs}
+  echo $(timestamp $etiqueta)\|$myPidStr\|$(md5)\|${MY_VERSION}\|${HOSTNAME}\|${USERNAME}\|${name}\|${ips}\|${macs}
 }
 addCurlGoogle() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_GOOGLE.txt"
