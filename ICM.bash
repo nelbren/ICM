@@ -1,8 +1,8 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2024-07-27
+# Internet Connection Monitor - nelbren@nelbren.com @ 2024-08-03
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.0
+  MY_VERSION=2.1
   TIME_INTERVAL=2
   #TIME_TOTAL=3600
   TIME_ELAPSED=0
@@ -282,6 +282,14 @@ takeClipboard() {
   temp1="${Iy} 📋 CLIPBOARD: ${EVIDENCE_FILE}${S}\n${nY}${temp0}\n"
   temp=$temp1
 }
+takeTaskList() {
+  EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_TASKLIST.txt"
+  if [ "$OS" == "WINDOWS" ]; then
+    tasklist //FO CSV > $EVIDENCE_FILE
+  elif [ "$OS" == "MACOS" ]; then
+    ps -A > $EVIDENCE_FILE
+  fi
+}
 takeExternalEvidence() {
   curl -s https://nelbren.com/$info3 --connect-timeout 2 -m 2 2>&1 | >/dev/null
 }
@@ -310,6 +318,7 @@ evidence() {
 
     takeScreenshot
     takeClipboard
+    takeTaskList
   fi
 }
 checkInternet() {
