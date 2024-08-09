@@ -2,8 +2,14 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2024-08-03
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.1
-  TIME_INTERVAL=2
+  MY_VERSION=2.2
+  REMOTE=0
+  if [ -z "$1" ]; then
+    TIME_INTERVAL=2
+  else
+    TIME_INTERVAL=$1
+    REMOTE=1
+  fi
   #TIME_TOTAL=3600
   TIME_ELAPSED=0
   S="\e[0m";E="\e[K";n="$S\e[38;5";N="\e[9";e="\e[7";I="$e;49;9"
@@ -142,11 +148,17 @@ getName() {
 getNameGit() {
   NAME=$(git config user.name)
   if [ -z "$NAME" ]; then
-    echo "Configure the git config!"
+    echo "Please set your name for git, using:"
+    echo "git config --global user.name \"Your name\""
     exit 3
   fi
   name=$(echo $NAME | tr "[ ]" "[_]")
   email=$(git config user.email)
+  if [ -z "$email" ]; then
+    echo "Please set your email for git, using:"
+    echo "git config --global user.email \"Your email\""
+    exit 3
+  fi
   name="${name}($email)"
 }
 getMACWindows() {
@@ -215,7 +227,7 @@ getNetwork() {
 info() {
   etiqueta="$1"
   getNetwork
-  echo $(timestamp $etiqueta)\|$myPidStr\|$(md5)\|${MY_VERSION}\|${HOSTNAME}\|${USERNAME}\|${name}\|${ips}\|${macs}
+  echo $(timestamp $etiqueta)\|$myPidStr\|$(md5)\|${MY_VERSION}\|${HOSTNAME}\|${USERNAME}\|${name}\|${REMOTE}\|${TIME_INTERVAL}\|${ips}\|${macs}
 }
 addCurlGoogle() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_GOOGLE.txt"
@@ -294,6 +306,7 @@ takeExternalEvidence() {
   curl -s https://nelbren.com/$info3 --connect-timeout 2 -m 2 2>&1 | >/dev/null
 }
 playSound() {
+  [ "$REMOTE" == "1" ] && return
   phrase="$NAME has access to the internet"
   if [ "$OS" == "WINDOWS" ]; then
     $MY_NCMD mediaplay 10000 $MY_SOUND
@@ -347,7 +360,7 @@ archive() {
   tar czf ~/$TGZ $MY_DIR_DATE_LOG
   ls -lh ~/$TGZ
 }
-setVariables
+setVariables $1
 logBegin
 #while [ $TIEMPO_TRANSCURRIDO -lt $TIEMPO_TOTAL ]; do
 while [ "$RUNNING" == "1" ]; do
