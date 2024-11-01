@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2024-11-01
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.3
+  MY_VERSION=2.4
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -55,13 +55,12 @@ getOSType() {
 }
 checkUpdate() {
   url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
-  data=$(curl -s $url --connect-timeout 2 -m 2 | grep "MY_VERSION=")
+  data=$(curl -s $url --connect-timeout 2 -m 2 | egrep "MY_VERSION=\d+.\d+$")
   version=$(echo $data | cut -d"=" -f2)
+  #echo $MY_VERSION $version 
   if [ -n "$version" ]; then
     if [ "$MY_VERSION" != "$version" ]; then
-      echo "💻 ICM v${MY_VERSION} != 🌐 ICM v${version}"
-      echo ""
-      echo "Please update, with: git pull"
+      printf "💻 ICM ${nR}v${MY_VERSION}${S} ${nW}!= 🌐 ICM ${nG}v${version}${S} -> ${nR}Please update, with: ${Iw}git pull${S}\n"
       exit 1
     fi
   fi
