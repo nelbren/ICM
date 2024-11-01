@@ -1,8 +1,8 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2024-08-03
+# Internet Connection Monitor - nelbren@nelbren.com @ 2024-11-01
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.2
+  MY_VERSION=2.3
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -21,6 +21,7 @@ setVariables() {
   count
   RUNNING=1
   getOSType
+  checkUpdate
   checkSpace
   setBin
   setLogs
@@ -51,6 +52,19 @@ getOSType() {
       echo "Sistema operativo desconocido: $OSTYPE"
       exit 1;;
   esac
+}
+checkUpdate() {
+  url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
+  data=$(curl -s $url --connect-timeout 2 -m 2 | grep "MY_VERSION=")
+  version=$(echo $data | cut -d"=" -f2)
+  if [ -n "$version" ]; then
+    if [ "$MY_VERSION" != "$version" ]; then
+      echo "💻 ICM v${MY_VERSION} != 🌐 ICM v${version}"
+      echo ""
+      echo "Please update, with: git pull"
+      exit 1
+    fi
+  fi
 }
 checkSpace() {
   MINIMUM=5 # G
