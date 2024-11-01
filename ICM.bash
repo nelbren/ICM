@@ -209,7 +209,7 @@ getNetwork() {
     macs=$(echo $data)
     #macs=$(getMACWindows)
   elif [ "$OS" == "MACOS" ]; then
-    interface=$(route -n get default | grep interface | cut -d":" -f2)
+    interface=$(route -n get default 2>/dev/null | grep interface | cut -d":" -f2)
     data=$(ifconfig $interface | grep -w inet)
     ips=$(echo $data | cut -d" " -f2)
     data=$(ifconfig $interface | grep -w ether)
@@ -347,12 +347,16 @@ checkInternet() {
     info1=$(info "↓")
     printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> $MY_FILE_LOG
     info2=$(info "→")
-    printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" | tee -a $MY_FILE_LOG
+    #printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" | tee -a $MY_FILE_LOG
+    printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" >> $MY_FILE_LOG
+    printf "${nR}X"
     info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
     playSound
     #takeExternalEvidence
   else
-    printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
+    #printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
+    printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" >> $MY_FILE_LOG
+    printf "${nG}·"
   fi
 }
 archive() {
