@@ -1,14 +1,24 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2024-11-01
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-05
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.4
+  MY_VERSION=2.5
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
+    IP=""
+    ID=""
   else
-    TIME_INTERVAL=$1
-    REMOTE=1
+    regex="^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+    if [[ $1 =~ $regex ]]; then
+      TIME_INTERVAL=2
+      IP=$1
+      ID=$2
+    else
+      TIME_INTERVAL=$1
+      REMOTE=1
+      ID=""
+    fi
   fi
   #TIME_TOTAL=3600
   TIME_ELAPSED=0
@@ -237,6 +247,26 @@ getNetwork() {
   macs=$(echo $macs | tr "[ ]" "[,]")
   #echo "IP: $ip MAC: $macs"
 }
+getGateway() {
+  if [ "$OS" == "WINDOWS" ]; then
+    echo "2TEST!!!"
+    exit
+  elif [ "$OS" == "MACOS" ]; then
+    gateway2=$(route -n get default | grep gateway | cut -d":" -f2)
+  fi
+  echo $gateway2 >>  ~/.gateway.txt
+  echo $gateway2
+}
+setGateway() {
+  [ -z "$IP" ] && return
+  if [ "$OS" == "WINDOWS" ]; then
+    echo "2TEST!!!"
+    exit
+  elif [ "$OS" == "MACOS" ]; then
+    sudo route delete default
+    sudo route add default $1
+  fi
+}
 info() {
   etiqueta="$1"
   getNetwork
@@ -347,13 +377,32 @@ evidence() {
     takeTaskList
   fi
 }
-checkInternet() {
+checkGoogle() {
   internet=false
   echo > $MY_FILE_LOG_TEMP
   curl -o $MY_FILE_LOG_TEMP -s --connect-timeout 2 -m 2 http://google.com
   temp=$(cat $MY_FILE_LOG_TEMP)
   if [ -n "$temp" ]; then
     internet=true
+  fi
+}
+checkGateway() {
+  internet=false
+  if [ "$OS" == "WINDOWS" ]; then
+    echo TODO!!!!!
+    exit 1
+  elif [ "$OS" == "MACOS" ]; then
+    gateway2=$(getGateway)
+    if [ "$gateway2" == "$ip" ]; then
+      internet=true
+    fi
+  fi
+}
+checkInternet() {
+  if [ -n "$IP" -a -n "$ID" ]; then
+    checkGateway
+  else
+    checkGoogle
   fi
   if $internet; then
     evidence $MY_FILE_LOG_TEMP
@@ -364,12 +413,28 @@ checkInternet() {
     printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" >> $MY_FILE_LOG
     printf "${nR}X"
     info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
-    playSound
+    if [ -z "$IP" ]; then
+      playSound
+    fi
     #takeExternalEvidence
+    status="🌐"
   else
     #printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
     printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" >> $MY_FILE_LOG
     printf "${nG}·"
+    status="✔️"
+  fi
+  if [ -n "$IP" -a -n "$ID" ]; then
+    status="✔️"
+    data="{\"id\" : \"$ID\", \"status\" : \"$status\"}"
+    # echo $data
+    curl -s -X POST -H "Content-Type: application/json" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
+    if [ "$?" == "0" ]; then
+      color="${nG}"
+    else
+      color="${nR}"
+    fi
+    printf "${color}d"
   fi
 }
 archive() {
@@ -377,8 +442,20 @@ archive() {
   tar czf ~/$TGZ $MY_DIR_DATE_LOG
   ls -lh ~/$TGZ
 }
-setVariables $1
+disableInternet() {
+  if [ -n "$IP" ]; then
+    gateway=$(getGateway)
+    setGateway $IP
+  fi
+}
+enableInternet() {
+  if [ -n "$IP" ]; then
+    setGateway $gateway
+  fi
+}
+setVariables $1 $2
 logBegin
+disableInternet
 #while [ $TIEMPO_TRANSCURRIDO -lt $TIEMPO_TOTAL ]; do
 while [ "$RUNNING" == "1" ]; do
   count
@@ -386,3 +463,4 @@ while [ "$RUNNING" == "1" ]; do
   sleep $TIME_INTERVAL
   #TIME_ELAPSED=$((TIME_ELAPSED + TIME_INTERVAL))
 done
+enableInternet
