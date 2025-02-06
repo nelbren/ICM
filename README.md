@@ -1,5 +1,9 @@
 # 🌐 Internet Connection Monitor (ICM) 🔌
 
+|Version|md5sum|
+|--:|--:|
+|`2.6`|`0a5ffe65b97daaf50399b3c17697220a`|
+
 A bash script for **Windows** (using git bash) and MacOS that continuously checks the internet connection, keeps a log of each check, and if it identifies an internet connection, it takes evidence (web access, open ports, ping, access address information, screenshot and clipboard content capture). Upon completion it creates a **TGZ** file with the log and all captured evidence.
 
 # How to use it:

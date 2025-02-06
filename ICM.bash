@@ -1,8 +1,8 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-05
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-06
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.5
+  MY_VERSION=2.6
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -249,19 +249,27 @@ getNetwork() {
 }
 getGateway() {
   if [ "$OS" == "WINDOWS" ]; then
-    echo "2TEST!!!"
-    exit
+    data=$(route print -4 | grep -a " 0.0.0.0")
+    #echo 0 $data >> SALIDA.txt
+    gateway2=$(echo $data | cut -d" " -f3)
+    #echo 1 $gateway2 >> SALIDA.txt
+    if ! [[ $gateway2 =~ $regex ]]; then
+      gateway2=$(echo $data | tr "[ ]" "[\n]" | tail -2 | head -1)
+      #echo 2 $gateway2 >> SALIDA.txt
+    fi
   elif [ "$OS" == "MACOS" ]; then
     gateway2=$(route -n get default | grep gateway | cut -d":" -f2)
   fi
-  echo $gateway2 >>  ~/.gateway.txt
-  echo $gateway2
+  echo $gateway2 >  ~/.gateway.txt
+  echo $gateway2 >>  ~/.gateways.txt
+  echo $gateway2 # Retornar valor
 }
 setGateway() {
   [ -z "$IP" ] && return
   if [ "$OS" == "WINDOWS" ]; then
-    echo "2TEST!!!"
-    exit
+     # https://stackoverflow.com/questions/5944180/how-do-you-run-a-command-as-an-administrator-from-the-windows-command-line
+    .bin/run-elevated.cmd $1
+    sleep 2 # Esperar a que se termine de aplicar el comando anterior
   elif [ "$OS" == "MACOS" ]; then
     sudo route delete default
     sudo route add default $1
@@ -358,7 +366,7 @@ playSound() {
     afplay $MY_SOUND
     say -v Whisper "$phrase"
   fi
- }
+}
 evidence() {
   MY_DIR_EVIDENCE_LOG="${MY_DIR_PID_LOG}/evidence/"
   if [ ! -d $MY_DIR_EVIDENCE_LOG ]; then
@@ -387,16 +395,18 @@ checkGoogle() {
   fi
 }
 checkGateway() {
-  internet=false
+  gateway2=""
+  internet=true
   if [ "$OS" == "WINDOWS" ]; then
-    echo TODO!!!!!
-    exit 1
+    #gateway2=$(powershell -Command "(Get-NetIPConfiguration).IPv4DefaultGateway.NextHop")
+    gateway2=$(getGateway)
   elif [ "$OS" == "MACOS" ]; then
     gateway2=$(getGateway)
-    if [ "$gateway2" == "$ip" ]; then
-      internet=true
-    fi
   fi
+  if [ "$gateway2" == "$IP" ]; then
+    internet=false
+  fi
+  #echo "gateway2 = $gateway2  == ip: $IP ==> internet: $internet"
 }
 checkInternet() {
   if [ -n "$IP" -a -n "$ID" ]; then
@@ -404,6 +414,7 @@ checkInternet() {
   else
     checkGoogle
   fi
+  #echo $internet
   if $internet; then
     evidence $MY_FILE_LOG_TEMP
     info1=$(info "↓")
@@ -417,18 +428,20 @@ checkInternet() {
       playSound
     fi
     #takeExternalEvidence
-    status="🌐"
+    #status="🌐"
+    status="INTERNET"
   else
     #printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
     printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" >> $MY_FILE_LOG
     printf "${nG}·"
-    status="✔️"
+    #status="✔️"
+    #status=$(echo -e '\u2714')
+    status="OK"
   fi
   if [ -n "$IP" -a -n "$ID" ]; then
-    status="✔️"
     data="{\"id\" : \"$ID\", \"status\" : \"$status\"}"
     # echo $data
-    curl -s -X POST -H "Content-Type: application/json" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
+    curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
       color="${nG}"
     else
@@ -445,6 +458,7 @@ archive() {
 disableInternet() {
   if [ -n "$IP" ]; then
     gateway=$(getGateway)
+    #echo $gateway
     setGateway $IP
   fi
 }
