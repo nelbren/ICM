@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-06
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.6
+  MY_VERSION=2.7
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -267,12 +267,15 @@ getGateway() {
 setGateway() {
   [ -z "$IP" ] && return
   if [ "$OS" == "WINDOWS" ]; then
-     # https://stackoverflow.com/questions/5944180/how-do-you-run-a-command-as-an-administrator-from-the-windows-command-line
+    # https://stackoverflow.com/questions/5944180/how-do-you-run-a-command-as-an-administrator-from-the-windows-command-line
     .bin/run-elevated.cmd $1
     sleep 2 # Esperar a que se termine de aplicar el comando anterior
   elif [ "$OS" == "MACOS" ]; then
-    sudo route delete default
-    sudo route add default $1
+    # https://stackoverflow.com/questions/5560442/how-to-run-two-commands-with-sudo
+    sudo -s -- <<EOF
+route delete default
+route add default $1
+EOF
   fi
 }
 info() {
