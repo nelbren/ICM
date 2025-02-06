@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-06
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.7
+  MY_VERSION=2.8
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -62,6 +62,9 @@ getOSType() {
       echo "Sistema operativo desconocido: $OSTYPE"
       exit 1;;
   esac
+}
+installPackages() {
+  [ ! -x /usr/bin/netstat ] && sudo apt install net-tools
 }
 checkUpdate() {
   url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
@@ -237,6 +240,15 @@ getNetwork() {
     ips=$(echo $data | cut -d" " -f2)
     data=$(ifconfig $interface | grep -w ether)
     macs=$(echo $data | cut -d" " -f2)
+  elif [ "$OS" == "LINUX" ]; then
+    interface=$(ip route | grep default | cut -d" " -f5)
+    #echo $interface
+    data=$(ip addr show $interface | grep "inet ")
+    ips=$(echo $data | cut -d" " -f2)
+    #echo $ips
+    data=$(ip addr show $interface | grep "ether")
+    macs=$(echo $data | cut -d" " -f2)
+    #echo $macs
   fi
   if [ -z "$ips" ]; then
     ips="-"
@@ -259,6 +271,9 @@ getGateway() {
     fi
   elif [ "$OS" == "MACOS" ]; then
     gateway2=$(route -n get default | grep gateway | cut -d":" -f2)
+  elif [ "$OS" == "LINUX" ]; then
+    gateway2=$(ip route | grep default | cut -d" " -f3)
+    #echo $gateway2 >> SALIDA.txt
   fi
   echo $gateway2 >  ~/.gateway.txt
   echo $gateway2 >>  ~/.gateways.txt
@@ -276,6 +291,11 @@ setGateway() {
 route delete default
 route add default $1
 EOF
+  elif [ "$OS" == "LINUX" ]; then
+    sudo -s -- <<EOF
+ip route del 0/0
+ip route replace default via $1
+EOF
   fi
 }
 info() {
@@ -292,7 +312,11 @@ addCurlGoogle() {
 }
 takeNetstat() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_NETSTAT.txt"
-  netstat -na > $MY_FILE_LOG_TEMP  
+  if [ "$OS" == "LINUX" ]; then
+    ss -na > $MY_FILE_LOG_TEMP  
+  else
+    netstat -na > $MY_FILE_LOG_TEMP  
+  fi
   temp0=$(cat $MY_FILE_LOG_TEMP)
   temp1="\n${Iy} netstat -na:${S}\n${nY}${temp0}\n"
   temp="${temp}${temp1}"
@@ -303,6 +327,8 @@ takePing() {
   if [ "$OS" == "WINDOWS" ]; then
     ping -n 1 google.com > $MY_FILE_LOG_TEMP
   elif [ "$OS" == "MACOS" ]; then
+    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+  elif [ "$OS" == "LINUX" ]; then
     ping -c 1 google.com > $MY_FILE_LOG_TEMP
   else
     echo "$OS -> ping undefined" > $MY_FILE_LOG_TEMP
@@ -326,6 +352,8 @@ takeScreenshot() {
     $MY_NCMD cmdwait 0 savescreenshot $EVIDENCE_FILE
   elif [ "$OS" == "MACOS" ]; then
     screencapture -x $EVIDENCE_FILE
+  elif [ "$OS" == "LINUX" ]; then
+    echo "$OS -> screenshot pendiente" > $MY_FILE_LOG_TEMP
   else
     echo "$OS -> screenshot undefined" > $MY_FILE_LOG_TEMP
   fi
@@ -340,6 +368,8 @@ takeClipboard() {
     $MY_NCMD clipboard addfile $EVIDENCE_FILE
   elif [ "$OS" == "MACOS" ]; then
     pbpaste > $EVIDENCE_FILE
+  elif [ "$OS" == "LINUX" ]; then
+    echo "$OS -> clipboard pendiente" > $MY_FILE_LOG_TEMP
   else
     echo "$OS -> clipboard undefined" > $MY_FILE_LOG_TEMP
   fi
@@ -354,6 +384,8 @@ takeTaskList() {
     tasklist //FO CSV > $EVIDENCE_FILE
   elif [ "$OS" == "MACOS" ]; then
     ps -A > $EVIDENCE_FILE
+  elif [ "$OS" == "LINUX" ]; then
+    ps -ef > $EVIDENCE_FILE
   fi
 }
 takeExternalEvidence() {
@@ -368,6 +400,9 @@ playSound() {
   elif [ "$OS" == "MACOS" ]; then
     afplay $MY_SOUND
     say -v Whisper "$phrase"
+  elif [ "$OS" == "LINUX" ]; then
+    echo "FALTA SOUND"
+    exit 1
   fi
 }
 evidence() {
@@ -377,7 +412,8 @@ evidence() {
   fi
 
   temp=""
-  if [ -r $MY_FILE_LOG_TEMP ]; then
+  #echo $MY_FILE_LOG_TEMP
+  #if [ -r $MY_FILE_LOG_TEMP ]; then
     addCurlGoogle
     takeNetstat
     takePing
@@ -386,7 +422,7 @@ evidence() {
     takeScreenshot
     takeClipboard
     takeTaskList
-  fi
+  #fi
 }
 checkGoogle() {
   internet=false
@@ -403,7 +439,7 @@ checkGateway() {
   if [ "$OS" == "WINDOWS" ]; then
     #gateway2=$(powershell -Command "(Get-NetIPConfiguration).IPv4DefaultGateway.NextHop")
     gateway2=$(getGateway)
-  elif [ "$OS" == "MACOS" ]; then
+  elif [ "$OS" == "MACOS" -o "$OS" == "LINUX" ]; then
     gateway2=$(getGateway)
   fi
   if [ "$gateway2" == "$IP" ]; then

@@ -2,13 +2,13 @@
 
 |Version|md5sum|
 |--:|--:|
-|`2.7`|`d134c3f4b7a9efe42e83ab6de9a8a583`|
+|`2.8`|`fc5370445882dd65a9f85553f2133eee`|
 
-A bash script for **🪟Windows** (using git bash) and **🍎MacOS** that continuously checks the internet connection, keeps a log of each check, and if it identifies an internet connection, it takes evidence (web access, open ports, ping, access address information, screenshot and clipboard content capture). Upon completion it creates a **TGZ** file with the log and all captured evidence.
+A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linux** that continuously checks the internet connection, keeps a log of each check, and if it identifies an internet connection, it takes evidence (web access, open ports, ping, access address information, screenshot and clipboard content capture). Upon completion it creates a **TGZ** file with the log and all captured evidence.
 
 # How to use it:
 
-1. ## 💾 Install **ICM** using **git bash** on **🪟Windows** or **Terminal/iTerm** on **🍎MacOS**:
+1. ## 💾 Install **ICM** using **git bash** on **🪟Windows** or **Terminal/iTerm** on **🍎MacOS** or **Terminal** on **🐧Linux**:
   
     `git clone https://github.com/nelbren/ICM.git`
 
