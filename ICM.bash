@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-06
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.8
+  MY_VERSION=2.9
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -33,6 +33,7 @@ setVariables() {
   getOSType
   checkUpdate
   checkSpace
+  checkMD5
   setBin
   setLogs
   trap logEnd INT
@@ -90,6 +91,14 @@ checkSpace() {
   if [ $avail -lt $MINIMUM ]; then
     echo "Please free up more available space (Minimum ${MINIMUM}G, Current ${avail}G)"
     exit 2
+  fi
+}
+checkMD5() {
+  if [ "$OS" == "MACOS" ]; then
+    if ! echo "" | md5sum >/dev/null 2>&1; then
+      echo "Plese install md5sum (brew install md5sha1sum)"
+      exit 5
+    fi
   fi
 }
 setBin() {
@@ -448,11 +457,12 @@ checkGateway() {
   #echo "gateway2 = $gateway2  == ip: $IP ==> internet: $internet"
 }
 checkInternet() {
-  if [ -n "$IP" -a -n "$ID" ]; then
-    checkGateway
-  else
-    checkGoogle
-  fi
+  #if [ -n "$IP" -a -n "$ID" ]; then
+  #  checkGateway
+  #else
+  #  checkGoogle
+  #fi
+  checkGoogle
   #echo $internet
   if $internet; then
     evidence $MY_FILE_LOG_TEMP
@@ -478,7 +488,7 @@ checkInternet() {
     status="OK"
   fi
   if [ -n "$IP" -a -n "$ID" ]; then
-    data="{\"id\" : \"$ID\", \"status\" : \"$status\"}"
+    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"status\" : \"$status\"}"
     # echo $data
     curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
