@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-14
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.0
+  MY_VERSION=3.1
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -436,9 +436,25 @@ evidence() {
 checkGoogle() {
   internet=false
   echo > $MY_FILE_LOG_TEMP
-  curl -o $MY_FILE_LOG_TEMP -s --connect-timeout 2 -m 2 http://google.com
+  curl -o $MY_FILE_LOG_TEMP -s --connect-timeout 5 -m 2 http://google.com
   temp=$(cat $MY_FILE_LOG_TEMP)
   if [ -n "$temp" ]; then
+    internet=true
+  fi
+}
+checkGooglePing() {
+  internet=false
+  echo > $MY_FILE_LOG_TEMP
+  if [ "$OS" == "WINDOWS" ]; then
+    ping -n 1 google.com > $MY_FILE_LOG_TEMP
+  elif [ "$OS" == "MACOS" ]; then
+    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+  elif [ "$OS" == "LINUX" ]; then
+    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+  else
+    echo "$OS -> ping undefined" > $MY_FILE_LOG_TEMP
+  fi
+  if [ "$?" == "0" ]; then
     internet=true
   fi
 }
@@ -463,6 +479,7 @@ checkInternet() {
   #  checkGoogle
   #fi
   checkGoogle
+  #checkGooglePing
   #echo $internet
   if $internet; then
     evidence $MY_FILE_LOG_TEMP
