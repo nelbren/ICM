@@ -1,8 +1,8 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-06
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-14
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=2.9
+  MY_VERSION=3.0
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -87,7 +87,7 @@ checkSpace() {
     avail=$(df -h / | tail -1)
     avail=$(echo $avail | cut -d" " -f4 | cut -d"G" -f1)
   fi
-  avail=$(echo $avail)
+  avail=$(echo $avail | cut -d"." -f1)
   if [ $avail -lt $MINIMUM ]; then
     echo "Please free up more available space (Minimum ${MINIMUM}G, Current ${avail}G)"
     exit 2
@@ -488,7 +488,7 @@ checkInternet() {
     status="OK"
   fi
   if [ -n "$IP" -a -n "$ID" ]; then
-    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"status\" : \"$status\"}"
+    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\"}"
     # echo $data
     curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
