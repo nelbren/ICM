@@ -32,7 +32,7 @@ route add 0.0.0.0 mask 0.0.0.0 %IP%
 if /I "%2"=="INICIO" GOTO HabilitarCortafuegos
 if /I "%2"=="FIN" GOTO DeshabilitarCortafuegos
 
-REM exit
+exit
 
 REM echo Working dir: %cd%
 
@@ -54,4 +54,4 @@ echo netsh advfirewall firewall delete rule name="Allow Local Gateway"
 netsh advfirewall firewall delete rule name="Allow Local Gateway"
 goto :EOF
 
-REM exit
+exit
