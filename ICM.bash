@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-14
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.1
+  MY_VERSION=3.2
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -292,7 +292,7 @@ setGateway() {
   [ -z "$IP" ] && return
   if [ "$OS" == "WINDOWS" ]; then
     # https://stackoverflow.com/questions/5944180/how-do-you-run-a-command-as-an-administrator-from-the-windows-command-line
-    .bin/run-elevated.cmd $1
+    .bin/run-elevated.cmd $1 $2
     sleep 2 # Esperar a que se termine de aplicar el comando anterior
   elif [ "$OS" == "MACOS" ]; then
     # https://stackoverflow.com/questions/5560442/how-to-run-two-commands-with-sudo
@@ -303,7 +303,7 @@ EOF
   elif [ "$OS" == "LINUX" ]; then
     sudo -s -- <<EOF
 ip route del 0/0
-ip route replace default via $1
+ip route replace default via $1 $2
 EOF
   fi
 }
@@ -525,12 +525,12 @@ disableInternet() {
   if [ -n "$IP" ]; then
     gateway=$(getGateway)
     #echo $gateway
-    setGateway $IP
+    setGateway $IP INICIO
   fi
 }
 enableInternet() {
   if [ -n "$IP" ]; then
-    setGateway $gateway
+    setGateway $gateway FIN
   fi
 }
 setVariables $1 $2
