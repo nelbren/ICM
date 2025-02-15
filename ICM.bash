@@ -2,7 +2,7 @@
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-14
 setVariables() {
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.2
+  MY_VERSION=3.4
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2

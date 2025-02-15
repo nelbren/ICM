@@ -43,6 +43,7 @@ netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
 REM Permiter solo el trafico al "gateway"
 echo netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% protocol=TCP remoteport=8080 enable=yes
 netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% protocol=TCP remoteport=8080 enable=yes
+exit
 goto :EOF
 
 :DeshabilitarCortafuegos
@@ -52,6 +53,7 @@ netsh advfirewall set allprofiles firewallpolicy allowinbound,allowoutbound
 REM Eliminar regla de solo trafico al "gateway"
 echo netsh advfirewall firewall delete rule name="Allow Local Gateway"
 netsh advfirewall firewall delete rule name="Allow Local Gateway"
+exit
 goto :EOF
 
 exit
