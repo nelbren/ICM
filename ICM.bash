@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.9
+  MY_VERSION=4.0
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -105,9 +105,10 @@ diffSeconds() {
 }
 checkAlias() {
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
-  if ! echo $aliasCmd | grep -q ~/.profile; then
+  if ! grep -q "$aliasCmd" ~/.profile; then
     echo $aliasCmd >> ~/.profile
   fi
+  exit 1
 }
 checkGit() {
   currentDir=$(pwd)
