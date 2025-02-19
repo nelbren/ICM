@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.0
+  MY_VERSION=4.1
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -108,7 +108,6 @@ checkAlias() {
   if ! grep -q "$aliasCmd" ~/.profile; then
     echo $aliasCmd >> ~/.profile
   fi
-  exit 1
 }
 checkGit() {
   currentDir=$(pwd)
