@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.5
+  MY_VERSION=3.6
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -641,7 +641,7 @@ updateMVC() {
     else
       printf "${nR}β"
     fi
-    printf "($ds)"
+    #printf "($ds)"
     timestampLast=$timestampNow
   fi
 }
