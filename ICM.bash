@@ -1,8 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-14
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-19
 setVariables() {
+  timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
+  firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.4
+  MY_VERSION=3.5
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -15,7 +17,11 @@ setVariables() {
       IP=$1
       ID=$2
     else
-      TIME_INTERVAL=$1
+      if [ "$1" == "COMMIT" ]; then
+        TIME_INTERVAL=0
+      else
+        TIME_INTERVAL=$1
+      fi
       REMOTE=1
       ID=""
     fi
@@ -34,10 +40,16 @@ setVariables() {
   checkUpdate
   checkSpace
   checkMD5
+  checkAlias
   setBin
-  setLogs
+  setLogs $1
   trap logEnd INT
   getNameGit
+  if [ "$1" == "COMMIT" ]; then
+    takeCommitEvidence "$@"
+    exit 0
+  fi
+  checkGit
 }
 getOSType() {
   OS=""
@@ -64,8 +76,49 @@ getOSType() {
       exit 1;;
   esac
 }
+takeCommitEvidence() {
+  timestampNowGit=$(date +'%Y-%m-%d %H:%M:%S')
+  now=$(echo $timestampNowGit | tr "[ ]" "[_]" | tr "[:]" "[\-]")
+  DIR_GIT=${MY_DIR_GIT_LOG}/$now
+  #echo $DIR_GIT
+  if [ ! -d $DIR_GIT ]; then
+    mkdir -p $DIR_GIT
+  fi
+  takeScreenshot $DIR_GIT
+  git diff --cached > $DIR_GIT/git_diff_cached.txt
+  exit 0
+}
 installPackages() {
   [ ! -x /usr/bin/netstat ] && sudo apt install net-tools
+}
+diffSeconds() {
+  timePast=$1
+  timeNow=$2
+  # echo "timePast: '$timePast' timeNow: '$timeNow'"
+  if [ $OS == "MACOS" ]; then
+    timestampFormat="%Y-%m-%d %H:%M:%S"
+    diffSecs=$(( $(date -j -f"$timestampFormat" "$timeNow" +%s) - $(date -j -f"$timestampFormat" "$timePast" +%s) ))
+  else
+    diffSecs=$(( $(date --date="$timeNow" +%s) - $(date --date="$timePast" +%s) ))
+  fi
+  echo $diffSecs
+}
+checkAlias() {
+  aliasCmd="alias ICM='~/ICM/ICM.bash'"
+  if ! echo $aliasCmd | grep -q ~/.profile; then
+    echo $aliasCmd >> ~/.profile
+  fi
+}
+checkGit() {
+  if [ ! -r .git/config ]; then
+    echo "Please run me from a git repository directory!"
+    exit 1
+  fi
+  hook=.git/hooks/pre-commit
+  if [ ! -x $hook ]; then
+    echo "[ -x ~/ICM/ICM.bash ] && ~/ICM/ICM.bash COMMIT" > $hook
+    chmod +x $hook
+  fi
 }
 checkUpdate() {
   url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
@@ -102,7 +155,7 @@ checkMD5() {
   fi
 }
 setBin() {
-  MY_DIR_BIN=.bin
+  MY_DIR_BIN=$HOME/ICM/.bin
   MY_URL=https://nelbren.com/unitec/
   if [ ! -d $MY_DIR_BIN ]; then
     mkdir $MY_DIR_BIN
@@ -133,19 +186,30 @@ setBin() {
   fi
 }
 setLogs() {
-  MY_DIR_BASE_LOG=.logs
+  MY_DIR_BASE_LOG=$HOME/ICM/.logs
+  #echo $MY_DIR_BASE_LOG
   if [ ! -d $MY_DIR_BASE_LOG ]; then
-    mkdir $MY_DIR_BASE_LOG
+    mkdir -p $MY_DIR_BASE_LOG
   fi
   myTimestamp=$(date +'%Y-%m-%d')
   MY_DIR_DATE_LOG="${MY_DIR_BASE_LOG}/${myTimestamp}"
   if [ ! -d $MY_DIR_DATE_LOG ]; then
-    mkdir $MY_DIR_DATE_LOG
+    mkdir -p $MY_DIR_DATE_LOG
   fi
   myPidStr=$(printf "%07d" $$)
   MY_DIR_PID_LOG="${MY_DIR_DATE_LOG}/${myPidStr}"
   if [ ! -d $MY_DIR_PID_LOG ]; then
-    mkdir $MY_DIR_PID_LOG
+    mkdir -p $MY_DIR_PID_LOG
+  fi
+  if [ "$1" != "COMMIT" ]; then
+    MY_DIR_MVC_LOG="${MY_DIR_PID_LOG}/MVC"
+    if [ ! -d $MY_DIR_MVC_LOG ]; then
+      mkdir -p $MY_DIR_MVC_LOG
+    fi
+  fi
+  MY_DIR_GIT_LOG="${MY_DIR_PID_LOG}/GIT"  
+  if [ ! -d $MY_DIR_GIT_LOG ]; then
+    mkdir -p $MY_DIR_GIT_LOG
   fi
   MY_NAME_LOG=ICM
   MY_FILE_LOG="${MY_DIR_PID_LOG}/${MY_NAME_LOG}.log"
@@ -355,8 +419,12 @@ takeIpInfo() {
   temp="${temp}${temp1}"
   cp $MY_FILE_LOG_TEMP $EVIDENCE_FILE
 }
-takeScreenshot() {  
-  EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
+takeScreenshot() {
+  if [ -z $1 ]; then
+    EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
+  else
+    EVIDENCE_FILE="$1/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
+  fi
   if [ "$OS" == "WINDOWS" ]; then
     $MY_NCMD cmdwait 0 savescreenshot $EVIDENCE_FILE
   elif [ "$OS" == "MACOS" ]; then
@@ -533,6 +601,50 @@ enableInternet() {
     setGateway $gateway FIN
   fi
 }
+updateMVC() {
+  timestampNow=$(date +'%Y-%m-%d %H:%M:%S')
+  ds=$(diffSeconds "$timestampLast" "$timestampNow")
+  #updateAt=20 #15min * 60secs
+  #updateAt=300 #15min * 60secs
+  updateAt=900 #15min * 60secs
+  #echo "'$ds' -gt '$updateAt'"
+  printf "[$ds < $updateAt]"
+  if [ "$ds" -gt "$updateAt" -o \
+       "$firstTime" == "1" ]; then
+    firstTime=0
+    #echo $ds Is Time!!!!!
+    now=$(echo $timestampNow | tr "[ ]" "[_]" | tr "[:]" "[\-]")
+    DIR_MCV=${MY_DIR_MVC_LOG}/$now
+    if [ ! -d $DIR_MCV ]; then
+      mkdir -p $DIR_MCV
+    fi
+    error=0
+    find . -type f -iname \*.cpp -o \
+                   -iname \*.h* -o \
+                   -iname \*.form -o \
+                   -iname \*.java | \
+    while read fileName; do
+      #echo cp $fileName $DIR_MCV
+      dirSrc=$(dirname $fileName)
+      dirDst=${DIR_MCV}/${dirSrc}
+      if [ "$dirSrc" != "." ]; then
+        mkdir -p $dirDst
+      fi
+      #echo cp $fileName $dirDst
+      cp $fileName $dirDst
+      if [ "$?" != "0" ]; then
+        error=1
+      fi
+    done
+    if [ "$error" == "0" ]; then
+      printf "${nG}β"
+    else
+      printf "${nR}β"
+    fi
+    printf "($ds)"
+    timestampLast=$timestampNow
+  fi
+}
 setVariables $1 $2
 logBegin
 disableInternet
@@ -540,6 +652,7 @@ disableInternet
 while [ "$RUNNING" == "1" ]; do
   count
   checkInternet
+  updateMVC
   sleep $TIME_INTERVAL
   #TIME_ELAPSED=$((TIME_ELAPSED + TIME_INTERVAL))
 done
