@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.6
+  MY_VERSION=3.8
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -110,6 +110,11 @@ checkAlias() {
   fi
 }
 checkGit() {
+  currentDir=$(pwd)
+  currentDir=$(basename $currentDir)
+  if [ "$currentDir" == "ICM" ]; then
+    return
+  fi
   if [ ! -r .git/config ]; then
     echo "Please run me from a git repository directory!"
     exit 1
@@ -608,7 +613,7 @@ updateMVC() {
   #updateAt=300 #15min * 60secs
   updateAt=900 #15min * 60secs
   #echo "'$ds' -gt '$updateAt'"
-  printf "[$ds < $updateAt]"
+  #printf "[$ds < $updateAt]"
   if [ "$ds" -gt "$updateAt" -o \
        "$firstTime" == "1" ]; then
     firstTime=0
