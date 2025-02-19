@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=3.8
+  MY_VERSION=3.9
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -113,7 +113,8 @@ checkGit() {
   currentDir=$(pwd)
   currentDir=$(basename $currentDir)
   if [ "$currentDir" == "ICM" ]; then
-    return
+    echo "Please run from a different git repository directory than the ICM directory!"
+    exit 2
   fi
   if [ ! -r .git/config ]; then
     echo "Please run me from a git repository directory!"
