@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.2
+  MY_VERSION=4.3
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -107,6 +107,8 @@ checkAlias() {
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
   if ! grep -q "$aliasCmd" ~/.profile; then
     echo $aliasCmd >> ~/.profile
+    echo "Please log out and log back in to be able to use the ICM alias"
+    exit 1
   fi
 }
 checkGit() {
