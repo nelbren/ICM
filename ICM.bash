@@ -1,10 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-19
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-20
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.3
+  MY_VERSION=4.4
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -107,7 +107,8 @@ checkAlias() {
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
   if ! grep -q "$aliasCmd" ~/.profile; then
     echo $aliasCmd >> ~/.profile
-    echo "Please log out and log back in to be able to use the ICM alias"
+    echo -e "Please log out and log back in to be able to use the ICM alias or manually run:\n"
+    echo -e "source ~/.profile\n"
     exit 1
   fi
 }
@@ -124,13 +125,14 @@ checkGit() {
   fi
   hook=.git/hooks/pre-commit
   if [ ! -x $hook ]; then
-    echo "[ -x ~/ICM/ICM.bash ] && ~/ICM/ICM.bash COMMIT" > $hook
+    echo "#!/bin/bash" > $hook
+    echo "[ -x ~/ICM/ICM.bash ] && ~/ICM/ICM.bash COMMIT" >> $hook
     chmod +x $hook
   fi
 }
 checkUpdate() {
   url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
-  data=$(curl -s $url --connect-timeout 2 -m 2 | egrep "MY_VERSION=\d+.\d+$")
+  data=$(curl -s $url --connect-timeout 2 -m 2 | egrep "MY_VERSION=[0-9]+.[0-9]+$")
   version=$(echo $data | cut -d"=" -f2)
   #echo $MY_VERSION $version 
   if [ -n "$version" ]; then
@@ -141,16 +143,16 @@ checkUpdate() {
   fi
 }
 checkSpace() {
-  MINIMUM=5 # G
+  MINIMUM=5000 # MB
   if [ $OS == "WINDOWS" ]; then
-    avail=$(df -h / --output=avail | tail -1 | cut -d"G" -f1)
+    avail=$(df -m / --output=avail | tail -1 | cut -d"G" -f1)
   else
-    avail=$(df -h / | tail -1)
+    avail=$(df -m / | tail -1)
     avail=$(echo $avail | cut -d" " -f4 | cut -d"G" -f1)
   fi
   avail=$(echo $avail | cut -d"." -f1)
   if [ $avail -lt $MINIMUM ]; then
-    echo "Please free up more available space (Minimum ${MINIMUM}G, Current ${avail}G)"
+    echo "Please free up more available space (Minimum ${MINIMUM}MB, Current ${avail}MB)"
     exit 2
   fi
 }
@@ -194,6 +196,7 @@ setBin() {
   fi
 }
 setLogs() {
+  commit=$1
   MY_DIR_BASE_LOG=$HOME/ICM/.logs
   #echo $MY_DIR_BASE_LOG
   if [ ! -d $MY_DIR_BASE_LOG ]; then
@@ -204,16 +207,20 @@ setLogs() {
   if [ ! -d $MY_DIR_DATE_LOG ]; then
     mkdir -p $MY_DIR_DATE_LOG
   fi
-  myPidStr=$(printf "%07d" $$)
+  MY_PID=$MY_DIR_BASE_LOG/my_pid.txt
+  if [ "$commit" == "COMMIT" ]; then
+    myPidStr=$(cat $MY_PID)
+  else
+    myPidStr=$(printf "%07d" $$)
+    echo $myPidStr > $MY_PID
+  fi
   MY_DIR_PID_LOG="${MY_DIR_DATE_LOG}/${myPidStr}"
   if [ ! -d $MY_DIR_PID_LOG ]; then
     mkdir -p $MY_DIR_PID_LOG
   fi
-  if [ "$1" != "COMMIT" ]; then
-    MY_DIR_MVC_LOG="${MY_DIR_PID_LOG}/MVC"
-    if [ ! -d $MY_DIR_MVC_LOG ]; then
-      mkdir -p $MY_DIR_MVC_LOG
-    fi
+  MY_DIR_MVC_LOG="${MY_DIR_PID_LOG}/MVC"
+  if [ ! -d $MY_DIR_MVC_LOG ]; then
+    mkdir -p $MY_DIR_MVC_LOG
   fi
   MY_DIR_GIT_LOG="${MY_DIR_PID_LOG}/GIT"  
   if [ ! -d $MY_DIR_GIT_LOG ]; then
@@ -596,6 +603,7 @@ archive() {
   TGZ="ICM.tgz"
   tar czf ~/$TGZ $MY_DIR_DATE_LOG
   ls -lh ~/$TGZ
+  [ -r $MY_PID ] && rm $MY_PID
 }
 disableInternet() {
   if [ -n "$IP" ]; then
