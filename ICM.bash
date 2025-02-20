@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.4
+  MY_VERSION=4.5
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -81,11 +81,11 @@ takeCommitEvidence() {
   now=$(echo $timestampNowGit | tr "[ ]" "[_]" | tr "[:]" "[\-]")
   DIR_GIT=${MY_DIR_GIT_LOG}/$now
   #echo $DIR_GIT
-  if [ ! -d $DIR_GIT ]; then
-    mkdir -p $DIR_GIT
+  if [ ! -d "$DIR_GIT" ]; then
+    mkdir -p "$DIR_GIT"
   fi
-  takeScreenshot $DIR_GIT
-  git diff --cached > $DIR_GIT/git_diff_cached.txt
+  takeScreenshot "$DIR_GIT"
+  git diff --cached > "$DIR_GIT/git_diff_cached.txt"
   exit 0
 }
 installPackages() {
@@ -114,7 +114,7 @@ checkAlias() {
 }
 checkGit() {
   currentDir=$(pwd)
-  currentDir=$(basename $currentDir)
+  currentDir=$(basename "$currentDir")
   if [ "$currentDir" == "ICM" ]; then
     echo "Please run from a different git repository directory than the ICM directory!"
     exit 2
@@ -165,16 +165,16 @@ checkMD5() {
   fi
 }
 setBin() {
-  MY_DIR_BIN=$HOME/ICM/.bin
+  MY_DIR_BIN="$HOME/ICM/.bin"
   MY_URL=https://nelbren.com/unitec/
-  if [ ! -d $MY_DIR_BIN ]; then
-    mkdir $MY_DIR_BIN
+  if [ ! -d "$MY_DIR_BIN" ]; then
+    mkdir "$MY_DIR_BIN"
   fi
   if [ "$OS" == "WINDOWS" ]; then
     NCMD=nircmdc.exe
-    MY_NCMD=$MY_DIR_BIN/$NCMD
-    if [ ! -r $MY_NCMD ]; then
-      curl -s $MY_URL/$NCMD -o $MY_NCMD
+    MY_NCMD="$MY_DIR_BIN/$NCMD"
+    if [ ! -r "$MY_NCMD" ]; then
+      curl -s $MY_URL/$NCMD -o "$MY_NCMD"
       #ls -lh $MY_NCMD
     fi
     #NHV=BrowsingHistoryView.exe
@@ -185,46 +185,46 @@ setBin() {
     #fi
   fi
   SOUND=dial-up-modem-02.mp3
-  MY_SOUND=$MY_DIR_BIN/$SOUND
-  if [ ! -r $MY_SOUND ]; then
-    curl -s $MY_URL/$SOUND -o $MY_SOUND
+  MY_SOUND="$MY_DIR_BIN/$SOUND"
+  if [ ! -r "$MY_SOUND" ]; then
+    curl -s $MY_URL/$SOUND -o "$MY_SOUND"
     #ls -lh $MY_SOUND
   fi
-  if [ ! -r $MY_SOUND ]; then
+  if [ ! -r "$MY_SOUND" ]; then
     echo "I can't connect to the Internet to download the required files!"
     exit 4
   fi
 }
 setLogs() {
   commit=$1
-  MY_DIR_BASE_LOG=$HOME/ICM/.logs
+  MY_DIR_BASE_LOG="$HOME/ICM/.logs"
   #echo $MY_DIR_BASE_LOG
-  if [ ! -d $MY_DIR_BASE_LOG ]; then
-    mkdir -p $MY_DIR_BASE_LOG
+  if [ ! -d "$MY_DIR_BASE_LOG" ]; then
+    mkdir -p "$MY_DIR_BASE_LOG"
   fi
   myTimestamp=$(date +'%Y-%m-%d')
   MY_DIR_DATE_LOG="${MY_DIR_BASE_LOG}/${myTimestamp}"
-  if [ ! -d $MY_DIR_DATE_LOG ]; then
-    mkdir -p $MY_DIR_DATE_LOG
+  if [ ! -d "$MY_DIR_DATE_LOG" ]; then
+    mkdir -p "$MY_DIR_DATE_LOG"
   fi
-  MY_PID=$MY_DIR_BASE_LOG/my_pid.txt
+  MY_PID="$MY_DIR_BASE_LOG/my_pid.txt"
   if [ "$commit" == "COMMIT" ]; then
-    myPidStr=$(cat $MY_PID)
+    myPidStr=$(cat "$MY_PID")
   else
     myPidStr=$(printf "%07d" $$)
-    echo $myPidStr > $MY_PID
+    echo $myPidStr > "$MY_PID"
   fi
   MY_DIR_PID_LOG="${MY_DIR_DATE_LOG}/${myPidStr}"
-  if [ ! -d $MY_DIR_PID_LOG ]; then
-    mkdir -p $MY_DIR_PID_LOG
+  if [ ! -d "$MY_DIR_PID_LOG" ]; then
+    mkdir -p "$MY_DIR_PID_LOG"
   fi
   MY_DIR_MVC_LOG="${MY_DIR_PID_LOG}/MVC"
-  if [ ! -d $MY_DIR_MVC_LOG ]; then
-    mkdir -p $MY_DIR_MVC_LOG
+  if [ ! -d "$MY_DIR_MVC_LOG" ]; then
+    mkdir -p "$MY_DIR_MVC_LOG"
   fi
   MY_DIR_GIT_LOG="${MY_DIR_PID_LOG}/GIT"  
-  if [ ! -d $MY_DIR_GIT_LOG ]; then
-    mkdir -p $MY_DIR_GIT_LOG
+  if [ ! -d "$MY_DIR_GIT_LOG" ]; then
+    mkdir -p "$MY_DIR_GIT_LOG"
   fi
   MY_NAME_LOG=ICM
   MY_FILE_LOG="${MY_DIR_PID_LOG}/${MY_NAME_LOG}.log"
@@ -243,7 +243,7 @@ timestamp() {
   echo "${label}$(date +'%Y-%m-%d_%H-%M-%S')|${myCountStr}"
 }
 md5() {
-  echo $(md5sum $0) | cut -d" " -f1
+  echo $(md5sum "$0") | cut -d" " -f1
 }
 getName() {
   file=.ICM.name.txt
@@ -307,13 +307,13 @@ getMACWindows() {
 }
 logBegin() {
   #echo -e "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅" | tee -a $MY_FILE_LOG
-  printf "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅\n" | tee -a $MY_FILE_LOG
+  printf "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅\n" | tee -a "$MY_FILE_LOG"
 }
 logEnd() {
   RUNNING=0
   count
   #echo -e "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎" | tee -a $MY_FILE_LOG
-  printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎\n" | tee -a $MY_FILE_LOG
+  printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎\n" | tee -a "$MY_FILE_LOG"
   archive
 }
 getNetwork() {
@@ -371,7 +371,7 @@ setGateway() {
   [ -z "$IP" ] && return
   if [ "$OS" == "WINDOWS" ]; then
     # https://stackoverflow.com/questions/5944180/how-do-you-run-a-command-as-an-administrator-from-the-windows-command-line
-    $MY_DIR_BIN/run-elevated.cmd $1 $2
+    "$MY_DIR_BIN/run-elevated.cmd" $1 $2
     sleep 2 # Esperar a que se termine de aplicar el comando anterior
   elif [ "$OS" == "MACOS" ]; then
     # https://stackoverflow.com/questions/5560442/how-to-run-two-commands-with-sudo
@@ -393,46 +393,46 @@ info() {
 }
 addCurlGoogle() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_GOOGLE.txt"
-  temp0=$(cat $MY_FILE_LOG_TEMP)
+  temp0=$(cat "$MY_FILE_LOG_TEMP")
   temp1="${Iy} curl http://google.com:${S}\n${nY}${temp0}\n"
   temp=$temp1
-  cp $MY_FILE_LOG_TEMP $EVIDENCE_FILE
+  cp "$MY_FILE_LOG_TEMP" "$EVIDENCE_FILE"
 }
 takeNetstat() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_NETSTAT.txt"
   if [ "$OS" == "LINUX" ]; then
-    ss -na > $MY_FILE_LOG_TEMP  
+    ss -na > "$MY_FILE_LOG_TEMP"
   else
-    netstat -na > $MY_FILE_LOG_TEMP  
+    netstat -na > "$MY_FILE_LOG_TEMP"
   fi
-  temp0=$(cat $MY_FILE_LOG_TEMP)
+  temp0=$(cat "$MY_FILE_LOG_TEMP")
   temp1="\n${Iy} netstat -na:${S}\n${nY}${temp0}\n"
   temp="${temp}${temp1}"
-  cp $MY_FILE_LOG_TEMP $EVIDENCE_FILE
+  cp "$MY_FILE_LOG_TEMP" "$EVIDENCE_FILE"
 }
 takePing() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_PING.txt"
   if [ "$OS" == "WINDOWS" ]; then
-    ping -n 1 google.com > $MY_FILE_LOG_TEMP
+    ping -n 1 google.com > "$MY_FILE_LOG_TEMP"
   elif [ "$OS" == "MACOS" ]; then
-    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
   elif [ "$OS" == "LINUX" ]; then
-    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
   else
-    echo "$OS -> ping undefined" > $MY_FILE_LOG_TEMP
+    echo "$OS -> ping undefined" > "$MY_FILE_LOG_TEMP"
   fi
-  temp0=$(cat $MY_FILE_LOG_TEMP)
+  temp0=$(cat "$MY_FILE_LOG_TEMP")
   temp1="\n${Iy} ping -n 1 google.com${S}\n${nY}${temp0}\n"
   temp="${temp}${temp1}"
-  cp $MY_FILE_LOG_TEMP $EVIDENCE_FILE
+  cp "$MY_FILE_LOG_TEMP" "$EVIDENCE_FILE"
 }
 takeIpInfo() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_IPINFO.txt"
-  curl -s https://ipinfo.io/json > $MY_FILE_LOG_TEMP
-  temp0=$(cat $MY_FILE_LOG_TEMP)
+  curl -s https://ipinfo.io/json > "$MY_FILE_LOG_TEMP"
+  temp0=$(cat "$MY_FILE_LOG_TEMP")
   temp1="\n${Iy} curl https://ipinfo.io/json${S}\n${nY}${temp0}\n"
   temp="${temp}${temp1}"
-  cp $MY_FILE_LOG_TEMP $EVIDENCE_FILE
+  cp "$MY_FILE_LOG_TEMP" "$EVIDENCE_FILE"
 }
 takeScreenshot() {
   if [ -z $1 ]; then
@@ -441,43 +441,43 @@ takeScreenshot() {
     EVIDENCE_FILE="$1/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
   fi
   if [ "$OS" == "WINDOWS" ]; then
-    $MY_NCMD cmdwait 0 savescreenshot $EVIDENCE_FILE
+    "$MY_NCMD" cmdwait 0 savescreenshot "$EVIDENCE_FILE"
   elif [ "$OS" == "MACOS" ]; then
     screencapture -x $EVIDENCE_FILE
   elif [ "$OS" == "LINUX" ]; then
-    echo "$OS -> screenshot pendiente" > $MY_FILE_LOG_TEMP
+    echo "$OS -> screenshot pendiente" > "$MY_FILE_LOG_TEMP"
   else
-    echo "$OS -> screenshot undefined" > $MY_FILE_LOG_TEMP
+    echo "$OS -> screenshot undefined" > "$MY_FILE_LOG_TEMP"
   fi
   #printf "${nY}📷${S}"
-  temp0=$(cat $MY_FILE_LOG_TEMP)
+  temp0=$(cat "$MY_FILE_LOG_TEMP")
   temp1="${Iy} 📷 SCREENSHOT: ${EVIDENCE_FILE}${S}\n${nY}${temp0}\n"
   temp=$temp1
 }
 takeClipboard() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_CLIPBOARD.txt"
   if [ "$OS" == "WINDOWS" ]; then
-    $MY_NCMD clipboard addfile $EVIDENCE_FILE
+    "$MY_NCMD" clipboard addfile "$EVIDENCE_FILE"
   elif [ "$OS" == "MACOS" ]; then
-    pbpaste > $EVIDENCE_FILE
+    pbpaste > "$EVIDENCE_FILE"
   elif [ "$OS" == "LINUX" ]; then
-    echo "$OS -> clipboard pendiente" > $MY_FILE_LOG_TEMP
+    echo "$OS -> clipboard pendiente" > "$MY_FILE_LOG_TEMP"
   else
-    echo "$OS -> clipboard undefined" > $MY_FILE_LOG_TEMP
+    echo "$OS -> clipboard undefined" > "$MY_FILE_LOG_TEMP"
   fi
   #printf "${nY}📋${S}"
-  temp0=$(cat $MY_FILE_LOG_TEMP)
+  temp0=$(cat "$MY_FILE_LOG_TEMP")
   temp1="${Iy} 📋 CLIPBOARD: ${EVIDENCE_FILE}${S}\n${nY}${temp0}\n"
   temp=$temp1
 }
 takeTaskList() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_TASKLIST.txt"
   if [ "$OS" == "WINDOWS" ]; then
-    tasklist //FO CSV > $EVIDENCE_FILE
+    tasklist //FO CSV > "$EVIDENCE_FILE"
   elif [ "$OS" == "MACOS" ]; then
-    ps -A > $EVIDENCE_FILE
+    ps -A > "$EVIDENCE_FILE"
   elif [ "$OS" == "LINUX" ]; then
-    ps -ef > $EVIDENCE_FILE
+    ps -ef > "$EVIDENCE_FILE"
   fi
 }
 takeExternalEvidence() {
@@ -487,10 +487,10 @@ playSound() {
   [ "$REMOTE" == "1" ] && return
   phrase="$NAME has access to the internet"
   if [ "$OS" == "WINDOWS" ]; then
-    $MY_NCMD mediaplay 10000 $MY_SOUND
-    $MY_NCMD speak text "$phrase"
+    "$MY_NCMD" mediaplay 10000 "$MY_SOUND"
+    "$MY_NCMD" speak text "$phrase"
   elif [ "$OS" == "MACOS" ]; then
-    afplay $MY_SOUND
+    afplay "$MY_SOUND"
     say -v Whisper "$phrase"
   elif [ "$OS" == "LINUX" ]; then
     echo "FALTA SOUND"
@@ -499,8 +499,8 @@ playSound() {
 }
 evidence() {
   MY_DIR_EVIDENCE_LOG="${MY_DIR_PID_LOG}/evidence/"
-  if [ ! -d $MY_DIR_EVIDENCE_LOG ]; then
-    mkdir $MY_DIR_EVIDENCE_LOG
+  if [ ! -d "$MY_DIR_EVIDENCE_LOG" ]; then
+    mkdir "$MY_DIR_EVIDENCE_LOG"
   fi
 
   temp=""
@@ -518,24 +518,24 @@ evidence() {
 }
 checkGoogle() {
   internet=false
-  echo > $MY_FILE_LOG_TEMP
-  curl -o $MY_FILE_LOG_TEMP -s --connect-timeout 5 -m 2 http://google.com
-  temp=$(cat $MY_FILE_LOG_TEMP)
+  echo > "$MY_FILE_LOG_TEMP"
+  curl -o "$MY_FILE_LOG_TEMP" -s --connect-timeout 5 -m 2 http://google.com
+  temp=$(cat "$MY_FILE_LOG_TEMP")
   if [ -n "$temp" ]; then
     internet=true
   fi
 }
 checkGooglePing() {
   internet=false
-  echo > $MY_FILE_LOG_TEMP
+  echo > "$MY_FILE_LOG_TEMP"
   if [ "$OS" == "WINDOWS" ]; then
-    ping -n 1 google.com > $MY_FILE_LOG_TEMP
+    ping -n 1 google.com > "$MY_FILE_LOG_TEMP"
   elif [ "$OS" == "MACOS" ]; then
-    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
   elif [ "$OS" == "LINUX" ]; then
-    ping -c 1 google.com > $MY_FILE_LOG_TEMP
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
   else
-    echo "$OS -> ping undefined" > $MY_FILE_LOG_TEMP
+    echo "$OS -> ping undefined" > "$MY_FILE_LOG_TEMP"
   fi
   if [ "$?" == "0" ]; then
     internet=true
@@ -565,12 +565,12 @@ checkInternet() {
   #checkGooglePing
   #echo $internet
   if $internet; then
-    evidence $MY_FILE_LOG_TEMP
+    evidence "$MY_FILE_LOG_TEMP"
     info1=$(info "↓")
-    printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> $MY_FILE_LOG
+    printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> "$MY_FILE_LOG"
     info2=$(info "→")
     #printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" | tee -a $MY_FILE_LOG
-    printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" >> $MY_FILE_LOG
+    printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" >> "$MY_FILE_LOG"
     printf "${nR}X"
     info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
     if [ -z "$IP" ]; then
@@ -581,7 +581,7 @@ checkInternet() {
     status="INTERNET"
   else
     #printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
-    printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" >> $MY_FILE_LOG
+    printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" >> "$MY_FILE_LOG"
     printf "${nG}·"
     #status="✔️"
     #status=$(echo -e '\u2714')
@@ -601,9 +601,9 @@ checkInternet() {
 }
 archive() {
   TGZ="ICM.tgz"
-  tar czf ~/$TGZ $MY_DIR_DATE_LOG
+  tar czf ~/$TGZ "$MY_DIR_DATE_LOG"
   ls -lh ~/$TGZ
-  [ -r $MY_PID ] && rm $MY_PID
+  [ -r "$MY_PID" ] && rm "$MY_PID"
 }
 disableInternet() {
   if [ -n "$IP" ]; then
@@ -630,9 +630,9 @@ updateMVC() {
     firstTime=0
     #echo $ds Is Time!!!!!
     now=$(echo $timestampNow | tr "[ ]" "[_]" | tr "[:]" "[\-]")
-    DIR_MCV=${MY_DIR_MVC_LOG}/$now
-    if [ ! -d $DIR_MCV ]; then
-      mkdir -p $DIR_MCV
+    DIR_MCV="${MY_DIR_MVC_LOG}/$now"
+    if [ ! -d "$DIR_MCV" ]; then
+      mkdir -p "$DIR_MCV"
     fi
     error=0
     find . -type f -iname \*.cpp -o \
@@ -642,12 +642,12 @@ updateMVC() {
     while read fileName; do
       #echo cp $fileName $DIR_MCV
       dirSrc=$(dirname $fileName)
-      dirDst=${DIR_MCV}/${dirSrc}
+      dirDst="${DIR_MCV}/${dirSrc}"
       if [ "$dirSrc" != "." ]; then
-        mkdir -p $dirDst
+        mkdir -p "$dirDst"
       fi
       #echo cp $fileName $dirDst
-      cp $fileName $dirDst
+      cp "$fileName" "$dirDst"
       if [ "$?" != "0" ]; then
         error=1
       fi
