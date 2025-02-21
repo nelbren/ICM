@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.5
+  MY_VERSION=4.6
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -601,8 +601,13 @@ checkInternet() {
 }
 archive() {
   TGZ="ICM.tgz"
-  tar czf ~/$TGZ "$MY_DIR_DATE_LOG"
-  ls -lh ~/$TGZ
+  tar czf "~/$TGZ" "$MY_DIR_DATE_LOG"
+  ls -lh "~/$TGZ"
+  if [ -n "$IP" ]; then
+    echo -e "Sending $TGZ to $IP...\n"
+    curl -i -X POST -F filedata=@$HOME/$TGZ http://$IP:8080/upload/$ID
+    echo -e "\n"
+  fi
   [ -r "$MY_PID" ] && rm "$MY_PID"
 }
 disableInternet() {
