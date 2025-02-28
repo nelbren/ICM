@@ -1,10 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-20
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-27
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.6
+  MY_VERSION=4.7
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -36,6 +36,7 @@ setVariables() {
   MY_COUNT=0
   count
   RUNNING=1
+  internetOff=0
   getOSType
   checkUpdate
   checkSpace
@@ -144,7 +145,7 @@ checkUpdate() {
 }
 checkSpace() {
   MINIMUM=5000 # MB
-  if [ $OS == "WINDOWS" ]; then
+  if [ "$OS" == "WINDOWS" ]; then
     avail=$(df -m / --output=avail | tail -1 | cut -d"G" -f1)
   else
     avail=$(df -m / | tail -1)
@@ -313,7 +314,8 @@ logEnd() {
   RUNNING=0
   count
   #echo -e "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎" | tee -a $MY_FILE_LOG
-  printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎\n" | tee -a "$MY_FILE_LOG"
+  printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎${S}\n" | tee -a "$MY_FILE_LOG"
+  enableInternet
   archive
 }
 getNetwork() {
@@ -435,7 +437,7 @@ takeIpInfo() {
   cp "$MY_FILE_LOG_TEMP" "$EVIDENCE_FILE"
 }
 takeScreenshot() {
-  if [ -z $1 ]; then
+  if [ -z "$1" ]; then
     EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
   else
     EVIDENCE_FILE="$1/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
@@ -601,12 +603,12 @@ checkInternet() {
 }
 archive() {
   TGZ="ICM.tgz"
-  tar czf "~/$TGZ" "$MY_DIR_DATE_LOG"
-  ls -lh "~/$TGZ"
+  tar czf "$HOME/$TGZ" "$MY_DIR_DATE_LOG"
+  ls -lh "$HOME/$TGZ"
   if [ -n "$IP" ]; then
-    echo -e "Sending $TGZ to $IP...\n"
+    echo -e "${nY}Sending $TGZ to $IP...\n"
     curl -i -X POST -F filedata=@$HOME/$TGZ http://$IP:8080/upload/$ID
-    echo -e "\n"
+    echo -e "${S}\n"
   fi
   [ -r "$MY_PID" ] && rm "$MY_PID"
 }
@@ -615,11 +617,16 @@ disableInternet() {
     gateway=$(getGateway)
     #echo $gateway
     setGateway $IP INICIO
+    internetOff=1
   fi
 }
 enableInternet() {
   if [ -n "$IP" ]; then
-    setGateway $gateway FIN
+    if [ "$internetOff" == "1" ]; then
+      # TODO: Mostrar actividad y su resultado
+      setGateway $gateway FIN
+      internetOff=0
+    fi
   fi
 }
 updateMVC() {
@@ -641,9 +648,10 @@ updateMVC() {
     fi
     error=0
     find . -type f -iname \*.cpp -o \
-                   -iname \*.h* -o \
+                   -iname \*.h\* -o \
                    -iname \*.form -o \
-                   -iname \*.java | \
+                   -iname \*.java -o \
+                   -iname \*.py | \
     while read fileName; do
       #echo cp $fileName $DIR_MCV
       dirSrc=$(dirname $fileName)
