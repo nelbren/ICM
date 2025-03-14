@@ -495,8 +495,12 @@ playSound() {
     afplay "$MY_SOUND"
     say -v Whisper "$phrase"
   elif [ "$OS" == "LINUX" ]; then
-    echo "FALTA SOUND"
-    exit 1
+    if command -v paplay >/dev/null 2>&1; then
+      paplay "$MY_SOUND"
+    else
+      echo "FALTA SOUND"
+      exit 1
+    fi
   fi
 }
 evidence() {
