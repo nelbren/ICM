@@ -1,10 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-02-27
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-03-14
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.7
+  MY_VERSION=4.8
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
