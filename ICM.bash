@@ -1,10 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-03-14
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-05-20
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.8
+  MY_VERSION=4.9
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -106,10 +106,16 @@ diffSeconds() {
 }
 checkAlias() {
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
-  if ! grep -q "$aliasCmd" ~/.profile; then
-    echo $aliasCmd >> ~/.profile
+  shell=$(basename $SHELL)
+  if [ "$shell" == "zsh" ]; then
+    profile=~/.zprofile
+  else
+    profile=~/.profile
+  fi
+  if ! grep -q "$aliasCmd" $profile 2>/dev/null; then
+    echo $aliasCmd >> $profile
     echo -e "Please log out and log back in to be able to use the ICM alias or manually run:\n"
-    echo -e "source ~/.profile\n"
+    echo -e 'source $profile\n'
     exit 1
   fi
 }
@@ -417,9 +423,9 @@ takePing() {
   if [ "$OS" == "WINDOWS" ]; then
     ping -n 1 google.com > "$MY_FILE_LOG_TEMP"
   elif [ "$OS" == "MACOS" ]; then
-    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP" 2>&1
   elif [ "$OS" == "LINUX" ]; then
-    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP" 2>&1
   else
     echo "$OS -> ping undefined" > "$MY_FILE_LOG_TEMP"
   fi
@@ -485,9 +491,31 @@ takeTaskList() {
 takeExternalEvidence() {
   curl -s https://nelbren.com/$info3 --connect-timeout 2 -m 2 2>&1 | >/dev/null
 }
+takeIA1() {
+  EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_IA1.txt"
+  v=$(curl -s http://localhost:11434/api/version)
+  echo "V:" > "$EVIDENCE_FILE"
+  echo $v >> "$EVIDENCE_FILE"
+  ps=$(curl -s http://localhost:11434/api/ps)
+  echo "PS:" >> "$EVIDENCE_FILE"
+  echo $ps >> "$EVIDENCE_FILE"
+  tags=$(curl -s http://localhost:11434/api/tags)
+  echo "TAGS:" >> "$EVIDENCE_FILE"
+  echo $tags >> "$EVIDENCE_FILE"
+}
+takeIA2() {
+  EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_IA2.txt"
+  models=$(curl -s http://localhost:1234/api/v0/models)
+  echo "MODELS:" > "$EVIDENCE_FILE"
+  echo $models >> "$EVIDENCE_FILE"
+}
 playSound() {
   [ "$REMOTE" == "1" ] && return
-  phrase="$NAME has access to the internet"
+  if $internet; then
+    phrase="$NAME has access to the internet"
+  else
+    phrase="$NAME has access to local IA"
+  fi
   if [ "$OS" == "WINDOWS" ]; then
     "$MY_NCMD" mediaplay 10000 "$MY_SOUND"
     "$MY_NCMD" speak text "$phrase"
@@ -515,11 +543,16 @@ evidence() {
     addCurlGoogle
     takeNetstat
     takePing
-    takeIpInfo
+    # takeIpInfo
 
     takeScreenshot
     takeClipboard
     takeTaskList
+    
+    case "$ia" in
+      1) takeIA1;;
+      2) takeIA2;;
+    esac
   #fi
 }
 checkGoogle() {
@@ -537,9 +570,9 @@ checkGooglePing() {
   if [ "$OS" == "WINDOWS" ]; then
     ping -n 1 google.com > "$MY_FILE_LOG_TEMP"
   elif [ "$OS" == "MACOS" ]; then
-    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP" 2>&1
   elif [ "$OS" == "LINUX" ]; then
-    ping -c 1 google.com > "$MY_FILE_LOG_TEMP"
+    ping -c 1 google.com > "$MY_FILE_LOG_TEMP" 2>&1
   else
     echo "$OS -> ping undefined" > "$MY_FILE_LOG_TEMP"
   fi
@@ -562,11 +595,6 @@ checkGateway() {
   #echo "gateway2 = $gateway2  == ip: $IP ==> internet: $internet"
 }
 checkInternet() {
-  #if [ -n "$IP" -a -n "$ID" ]; then
-  #  checkGateway
-  #else
-  #  checkGoogle
-  #fi
   checkGoogle
   #checkGooglePing
   #echo $internet
@@ -575,24 +603,48 @@ checkInternet() {
     info1=$(info "↓")
     printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> "$MY_FILE_LOG"
     info2=$(info "→")
-    #printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" | tee -a $MY_FILE_LOG
     printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" >> "$MY_FILE_LOG"
-    printf "${nR}X"
+    printf "${nR}🌐"
     info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
-    if [ -z "$IP" ]; then
-      playSound
-    fi
-    #takeExternalEvidence
-    #status="🌐"
     status="INTERNET"
   else
-    #printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" | tee -a $MY_FILE_LOG
     printf "${nW}$(info "→") ${nG}🌐❌${nW}→${nG}🎓✅\n" >> "$MY_FILE_LOG"
     printf "${nG}·"
-    #status="✔️"
-    #status=$(echo -e '\u2714')
     status="OK"
   fi
+}
+checkIA() {
+  ia=0
+  curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:11434
+  temp=$(cat "$MY_FILE_LOG_TEMP")
+  if echo $temp | grep -q "Ollama is running"; then
+    ia=1
+  else
+    curl -o "$MY_FILE_LOG_TEMP"  -s http://localhost:1234/api/v0/models
+    temp=$(cat "$MY_FILE_LOG_TEMP")
+    if echo $temp | grep -q data; then
+      ia=2
+    fi
+  fi
+  #echo $ia
+  #exit
+  if [ "$ia" != "0" ] ; then
+    evidence "$MY_FILE_LOG_TEMP"
+    info1=$(info "↓")
+    # printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> "$MY_FILE_LOG"
+    printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> "$MY_FILE_LOG" 2>/dev/null
+    info2=$(info "→")
+    printf "${nW}${info2} ${nG}🤖✅${nW}→${nR}🎓❌\n" >> "$MY_FILE_LOG"
+    printf "${nR}🤖"
+    info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
+    status="IA"
+  else
+    printf "${nW}$(info "→") ${nG}🤖❌${nW}→${nG}🎓✅\n" >> "$MY_FILE_LOG"
+    printf "${nG}·"
+    status="OK"
+  fi
+}
+checkValidation() {
   if [ -n "$IP" -a -n "$ID" ]; then
     data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\"}"
     # echo $data
@@ -603,6 +655,10 @@ checkInternet() {
       color="${nR}"
     fi
     printf "${color}d"
+  else
+    if [ "$internet" == "true" -o "$ia" != "0" ]; then
+      playSound
+    fi
   fi
 }
 archive() {
@@ -610,9 +666,9 @@ archive() {
   tar czf "$HOME/$TGZ" "$MY_DIR_DATE_LOG"
   ls -lh "$HOME/$TGZ"
   if [ -n "$IP" ]; then
-    echo -e "${nY}Sending $TGZ to $IP...\n"
-    curl -i -X POST -F filedata=@$HOME/$TGZ http://$IP:8080/upload/$ID
-    echo -e "${S}\n"
+    printf "${nY}Sending $TGZ to $IP...\n"
+    curl -i -X POST -F filedata="@$HOME/$TGZ" http://$IP:8080/upload/$ID
+    printf "${S}\n"
   fi
   [ -r "$MY_PID" ] && rm "$MY_PID"
 }
@@ -685,6 +741,8 @@ disableInternet
 while [ "$RUNNING" == "1" ]; do
   count
   checkInternet
+  checkIA
+  checkValidation
   updateMVC
   sleep $TIME_INTERVAL
   #TIME_ELAPSED=$((TIME_ELAPSED + TIME_INTERVAL))
