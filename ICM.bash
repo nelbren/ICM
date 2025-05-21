@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=4.9
+  MY_VERSION=5.0
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -51,6 +51,10 @@ setVariables() {
     exit 0
   fi
   checkGit
+  countLines=0
+  countTimeout=0
+  countInternet=0
+  countIA=0
 }
 getOSType() {
   OS=""
@@ -562,6 +566,7 @@ checkGoogle() {
   temp=$(cat "$MY_FILE_LOG_TEMP")
   if [ -n "$temp" ]; then
     internet=true
+    countInternet=$((countInternet+1))
   fi
 }
 checkGooglePing() {
@@ -601,7 +606,7 @@ checkInternet() {
   if $internet; then
     evidence "$MY_FILE_LOG_TEMP"
     info1=$(info "↓")
-    printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> "$MY_FILE_LOG"
+    printf "\n${Ir}${info1} EVIDENCIA:${S}\n\n$temp" >> "$MY_FILE_LOG" 2>/dev/null
     info2=$(info "→")
     printf "${nW}${info2} ${nG}🌐✅${nW}→${nR}🎓❌\n" >> "$MY_FILE_LOG"
     printf "${nR}🌐"
@@ -615,15 +620,22 @@ checkInternet() {
 }
 checkIA() {
   ia=0
+  echo > "$MY_FILE_LOG_TEMP"
   curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:11434
   temp=$(cat "$MY_FILE_LOG_TEMP")
   if echo $temp | grep -q "Ollama is running"; then
     ia=1
+    countIA=$((countIA+1))
   else
-    curl -o "$MY_FILE_LOG_TEMP"  -s http://localhost:1234/api/v0/models
+    echo > "$MY_FILE_LOG_TEMP"
+    curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:1234/api/v0/models
     temp=$(cat "$MY_FILE_LOG_TEMP")
+    # echo "-------"
+    # echo $temp
+    # echo "======="
     if echo $temp | grep -q data; then
       ia=2
+      countIA=$((countIA+1))
     fi
   fi
   #echo $ia
@@ -638,15 +650,12 @@ checkIA() {
     printf "${nR}🤖"
     info3=$(echo PROG2/${info2} | tr "[ ]" "[_]")
     status="IA"
-  else
-    printf "${nW}$(info "→") ${nG}🤖❌${nW}→${nG}🎓✅\n" >> "$MY_FILE_LOG"
-    printf "${nG}·"
-    status="OK"
   fi
 }
 checkValidation() {
   if [ -n "$IP" -a -n "$ID" ]; then
-    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\"}"
+    # echo "countLines -> $countLines"
+    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\", \"countLines\" : \"$countLines\", \"countInternet\" : \"$countInternet\", \"countIA\" : \"$countIA\" }"
     # echo $data
     curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
@@ -655,10 +664,9 @@ checkValidation() {
       color="${nR}"
     fi
     printf "${color}d"
-  else
-    if [ "$internet" == "true" -o "$ia" != "0" ]; then
-      playSound
-    fi
+  fi
+  if [ "$internet" == "true" -o "$ia" != "0" ]; then
+    playSound
   fi
 }
 archive() {
@@ -706,13 +714,13 @@ updateMVC() {
     if [ ! -d "$DIR_MCV" ]; then
       mkdir -p "$DIR_MCV"
     fi
+    countLines=0
     error=0
-    find . -type f -iname \*.cpp -o \
-                   -iname \*.h\* -o \
-                   -iname \*.form -o \
-                   -iname \*.java -o \
-                   -iname \*.py | \
     while read fileName; do
+      lines=$(grep -v -e '^[[:space:]]*$' $fileName | wc -l)
+      #echo " -> $lines" >> /tmp/salida.txt
+      countLines=$((countLines + lines))
+      #echo " => $countLines" >> /tmp/salida.txt
       #echo cp $fileName $DIR_MCV
       dirSrc=$(dirname $fileName)
       dirDst="${DIR_MCV}/${dirSrc}"
@@ -724,7 +732,12 @@ updateMVC() {
       if [ "$?" != "0" ]; then
         error=1
       fi
-    done
+    done < <(
+    find . -type f -iname \*.cpp -o \
+                   -iname \*.h\* -o \
+                   -iname \*.form -o \
+                   -iname \*.java -o \
+                   -iname \*.py)
     if [ "$error" == "0" ]; then
       printf "${nG}β"
     else
