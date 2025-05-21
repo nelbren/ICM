@@ -1,10 +1,11 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-05-20
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-05-21
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
   MY_VERSION=5.0
+  # TODO
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -655,7 +656,7 @@ checkIA() {
 checkValidation() {
   if [ -n "$IP" -a -n "$ID" ]; then
     # echo "countLines -> $countLines"
-    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\", \"countLines\" : \"$countLines\", \"countInternet\" : \"$countInternet\", \"countIA\" : \"$countIA\" }"
+    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\", \"countLines\" : \"$countLines\", \"countInternet\" : \"$countInternet\", \"countIA\" : \"$countIA\", \"MVC\" : \"$MVC\" }"
     # echo $data
     curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
@@ -698,6 +699,7 @@ enableInternet() {
   fi
 }
 updateMVC() {
+  MVC=0
   timestampNow=$(date +'%Y-%m-%d %H:%M:%S')
   ds=$(diffSeconds "$timestampLast" "$timestampNow")
   #updateAt=20 #15min * 60secs
@@ -707,6 +709,7 @@ updateMVC() {
   #printf "[$ds < $updateAt]"
   if [ "$ds" -gt "$updateAt" -o \
        "$firstTime" == "1" ]; then
+    MVC=1
     firstTime=0
     #echo $ds Is Time!!!!!
     now=$(echo $timestampNow | tr "[ ]" "[_]" | tr "[:]" "[\-]")
