@@ -1,11 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-05-21
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-05-23
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.0
-  # TODO
+  MY_VERSION=5.2
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -117,8 +116,8 @@ checkAlias() {
   else
     profile=~/.profile
   fi
-  if ! grep -q "$aliasCmd" $profile 2>/dev/null; then
-    echo $aliasCmd >> $profile
+  if ! grep -q "$aliasCmd" "$profile" 2>/dev/null; then
+    echo $aliasCmd >> "$profile"
     echo -e "Please log out and log back in to be able to use the ICM alias or manually run:\n"
     echo -e 'source $profile\n'
     exit 1
@@ -753,14 +752,12 @@ updateMVC() {
 setVariables $1 $2
 logBegin
 disableInternet
-#while [ $TIEMPO_TRANSCURRIDO -lt $TIEMPO_TOTAL ]; do
 while [ "$RUNNING" == "1" ]; do
   count
   checkInternet
   checkIA
-  checkValidation
   updateMVC
+  checkValidation
   sleep $TIME_INTERVAL
-  #TIME_ELAPSED=$((TIME_ELAPSED + TIME_INTERVAL))
 done
 enableInternet
