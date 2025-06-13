@@ -1,10 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-05-23
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-06-13
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.2
+  MY_VERSION=5.3
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -143,7 +143,7 @@ checkGit() {
 }
 checkUpdate() {
   url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
-  data=$(curl -s $url --connect-timeout 2 -m 2 | egrep "MY_VERSION=[0-9]+.[0-9]+$")
+  data=$(curl -s $url --connect-timeout 2 --max-time 2 | egrep "MY_VERSION=[0-9]+.[0-9]+$")
   version=$(echo $data | cut -d"=" -f2)
   #echo $MY_VERSION $version 
   if [ -n "$version" ]; then
@@ -325,6 +325,8 @@ logEnd() {
   count
   #echo -e "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎" | tee -a $MY_FILE_LOG
   printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎${S}\n" | tee -a "$MY_FILE_LOG"
+  firstTime=1
+  updateMVC 
   enableInternet
   archive
 }
@@ -381,16 +383,23 @@ getGateway() {
 }
 setGateway() {
   [ -z "$IP" ] && return
+  if [ "$2" == "INICIO" ]; then
+    echo -n "🌐👉🚫"
+  else
+    echo -n "🌐👉✅"
+  fi
   if [ "$OS" == "WINDOWS" ]; then
     # https://stackoverflow.com/questions/5944180/how-do-you-run-a-command-as-an-administrator-from-the-windows-command-line
     "$MY_DIR_BIN/run-elevated.cmd" $1 $2
     sleep 2 # Esperar a que se termine de aplicar el comando anterior
   elif [ "$OS" == "MACOS" ]; then
     # https://stackoverflow.com/questions/5560442/how-to-run-two-commands-with-sudo
-    sudo -s -- <<EOF
+    sudo -s -- 1>/dev/null <<EOF
 route delete default
 route add default $1
 EOF
+    # https://chatgpt.com/share/683a3644-a660-8005-b497-1fd8ed7d8d8c
+    sudo "$MY_DIR_BIN/run-elevated.sh" $1 $2 2>/dev/null 1>&2
   elif [ "$OS" == "LINUX" ]; then
     sudo -s -- <<EOF
 ip route del 0/0
@@ -497,7 +506,7 @@ takeExternalEvidence() {
 }
 takeIA1() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_IA1.txt"
-  v=$(curl -s http://localhost:11434/api/version)
+  v=$(curl -s http://localhost:11434/api/version --max-time 2 --connect-timeout 2)
   echo "V:" > "$EVIDENCE_FILE"
   echo $v >> "$EVIDENCE_FILE"
   ps=$(curl -s http://localhost:11434/api/ps)
@@ -509,7 +518,7 @@ takeIA1() {
 }
 takeIA2() {
   EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_IA2.txt"
-  models=$(curl -s http://localhost:1234/api/v0/models)
+  models=$(curl -s http://localhost:1234/api/v0/models --max-time 2 --connect-timeout 2)
   echo "MODELS:" > "$EVIDENCE_FILE"
   echo $models >> "$EVIDENCE_FILE"
 }
@@ -562,7 +571,7 @@ evidence() {
 checkGoogle() {
   internet=false
   echo > "$MY_FILE_LOG_TEMP"
-  curl -o "$MY_FILE_LOG_TEMP" -s --connect-timeout 5 -m 2 http://google.com
+  curl -o "$MY_FILE_LOG_TEMP" -s --connect-timeout 5 --max-time 2 http://google.com
   temp=$(cat "$MY_FILE_LOG_TEMP")
   if [ -n "$temp" ]; then
     internet=true
@@ -621,14 +630,14 @@ checkInternet() {
 checkIA() {
   ia=0
   echo > "$MY_FILE_LOG_TEMP"
-  curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:11434
+  curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:11434 --max-time 2 --connect-timeout 2
   temp=$(cat "$MY_FILE_LOG_TEMP")
   if echo $temp | grep -q "Ollama is running"; then
     ia=1
     countIA=$((countIA+1))
   else
     echo > "$MY_FILE_LOG_TEMP"
-    curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:1234/api/v0/models
+    curl -o "$MY_FILE_LOG_TEMP" -s http://localhost:1234/api/v0/models --max-time 2 --connect-timeout 2
     temp=$(cat "$MY_FILE_LOG_TEMP")
     # echo "-------"
     # echo $temp
@@ -657,7 +666,7 @@ checkValidation() {
     # echo "countLines -> $countLines"
     data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\", \"countLines\" : \"$countLines\", \"countInternet\" : \"$countInternet\", \"countIA\" : \"$countIA\", \"MVC\" : \"$MVC\" }"
     # echo $data
-    curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update 2>&1 >/dev/null
+    curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update --max-time 15 --connect-timeout 5 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
       color="${nG}"
     else
@@ -675,7 +684,7 @@ archive() {
   ls -lh "$HOME/$TGZ"
   if [ -n "$IP" ]; then
     printf "${nY}Sending $TGZ to $IP...\n"
-    curl -i -X POST -F filedata="@$HOME/$TGZ" http://$IP:8080/upload/$ID
+    curl -i -X POST -F filedata="@$HOME/$TGZ" http://$IP:8080/upload/$ID --max-time 15 --connect-timeout 5
     printf "${S}\n"
   fi
   [ -r "$MY_PID" ] && rm "$MY_PID"
