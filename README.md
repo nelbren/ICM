@@ -2,7 +2,7 @@
 
 |Version|Date|Updated on OS|Supported on OS|md5sum|
 |--:|--:|:--:|:--:|--:|
-|`5.3`|`2025-06-13 12:16`|🍎|🍎🪟🐧|`cd995a0823b4a9433f27292e37c5e47d`|
+|`5.4`|`2025-06-24 02:58`|🪟|🍎🪟🐧|`6eb0f2aaaad094b61fd30ff08200422d`|
 
 A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linux** that continuously checks the internet connection, keeps a log of each check, and if it identifies an internet connection, it takes evidence (web access, open ports, ping, access address information, screenshot and clipboard content capture). Upon completion it creates a **TGZ** file with the log and all captured evidence.
 

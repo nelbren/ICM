@@ -1,10 +1,10 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-06-13
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-06-24
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.3
+  MY_VERSION=5.4
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -55,6 +55,7 @@ setVariables() {
   countTimeout=0
   countInternet=0
   countIA=0
+  ARCHIVE=0
 }
 getOSType() {
   OS=""
@@ -679,6 +680,11 @@ checkValidation() {
   fi
 }
 archive() {
+  if [ "$ARCHIVE" == "1" ]; then
+    echo -n "📦"
+    return
+  fi
+  ARCHIVE=1
   TGZ="ICM.tgz"
   tar czf "$HOME/$TGZ" "$MY_DIR_DATE_LOG"
   ls -lh "$HOME/$TGZ"
@@ -728,7 +734,7 @@ updateMVC() {
     countLines=0
     error=0
     while read fileName; do
-      lines=$(grep -v -e '^[[:space:]]*$' $fileName | wc -l)
+      lines=$(grep -v -e '^[[:space:]]*$' "$fileName" | wc -l)
       #echo " -> $lines" >> /tmp/salida.txt
       countLines=$((countLines + lines))
       #echo " => $countLines" >> /tmp/salida.txt
