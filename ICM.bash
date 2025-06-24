@@ -4,7 +4,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.4
+  MY_VERSION=5.5
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -395,12 +395,13 @@ setGateway() {
     sleep 2 # Esperar a que se termine de aplicar el comando anterior
   elif [ "$OS" == "MACOS" ]; then
     # https://stackoverflow.com/questions/5560442/how-to-run-two-commands-with-sudo
-    sudo -s -- 1>/dev/null <<EOF
-route delete default
-route add default $1
-EOF
+#    sudo -s -- 1>/dev/null <<EOF
+#route delete default
+#route add default $1
+#EOF
     # https://chatgpt.com/share/683a3644-a660-8005-b497-1fd8ed7d8d8c
     sudo "$MY_DIR_BIN/run-elevated.sh" $1 $2 2>/dev/null 1>&2
+    # sudo "$MY_DIR_BIN/run-elevated.sh" $1 $2
   elif [ "$OS" == "LINUX" ]; then
     sudo -s -- <<EOF
 ip route del 0/0

@@ -39,6 +39,10 @@ block out all
 block in all
 pass out proto tcp to $ALLOW_IP port 8080
 pass in quick inet from $ALLOW_IP
+pass out proto tcp to 192.168.64.10 port 22
+pass in quick inet from 192.168.64.10
+pass out proto tcp to 10.0.0.2 port 22
+pass in quick inet from 10.0.0.2
 EOF
 
     # Asegurarse de que la anchor está referenciada en pf.conf
@@ -46,6 +50,21 @@ EOF
         echo "anchor \"$ANCHOR_NAME\"" >> "$PF_CONF"
         echo "load anchor \"$ANCHOR_NAME\" from \"$ANCHOR_FILE\"" >> "$PF_CONF"
     fi
+
+   ls -l ~/ICM/.bin/fw4instructure.sh
+   ~/ICM/.bin/fw4instructure.sh add
+   echo SALIDA: $?
+
+   echo "♻️ Recargando anchor '$ANCHOR_NAME'..."
+   pfctl -a "$ANCHOR_NAME" -f "$ANCHOR_FILE"
+
+   #echo "DESPUES:"
+   #cat $ANCHOR_FILE
+   #echo "======"
+
+   #echo "XXXXXX"
+   #cat /etc/pf.conf
+   #echo "YYYYYY"
 
     # Verificar y aplicar configuración
     pfctl -nf "$PF_CONF" || { echo "Error en la configuración de pf."; exit 1; }
@@ -63,11 +82,12 @@ function disable_blocking {
     # Opcional: limpiar la anchor
     rm -f "$ANCHOR_FILE"
 
-    # Eliminar referencias en pf.conf si existen
-    exit
-    sed -i.bak "/anchor \"$ANCHOR_NAME\"/d" "$PF_CONF"
-    #sed -i '' -e "/load anchor \"$ANCHOR_NAME\" from \"$ANCHOR_FILE\"/d" "$PF_CONF"
+    #~/ICM/.bin/fw4instructure.sh delete
 
+    # Eliminar referencias en pf.conf si existen
+    #exit
+    #sed -i.bak "/anchor \"$ANCHOR_NAME\"/d" "$PF_CONF"
+    #sed -i '' -e "/load anchor \"$ANCHOR_NAME\" from \"$ANCHOR_FILE\"/d" "$PF_CONF
     echo "Bloqueo desactivado. Acceso completo a internet restaurado."
 }
 

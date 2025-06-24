@@ -44,6 +44,8 @@ if ($Action -eq "add") {
         Write-Output "➕ Agregando regla: $ruleName"
         netsh advfirewall firewall add rule name="$ruleName" dir=out action=allow remoteip=$($ip.IPAddressToString) protocol=TCP remoteport=$Port enable=yes
     }
+    $ruleName = "127.0.0.1:2222"
+    netsh advfirewall firewall add rule name="$ruleName" dir=out action=allow remoteip=127.0.0.1 protocol=TCP remoteport=2222 enable=yes
     exit 0
 }
 
@@ -61,5 +63,7 @@ elseif ($Action -eq "delete") {
         Write-Output "❌ Eliminando regla: $ruleName"
         netsh advfirewall firewall delete rule name="$ruleName"
     }
+    $ruleName = "127.0.0.1:2222"
+    netsh advfirewall firewall delete rule name="$ruleName"
     exit 0
 }
