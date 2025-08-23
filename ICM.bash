@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.7
+  MY_VERSION=5.8
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -131,7 +131,7 @@ diffSeconds() {
 checkAlias() {
   aliasOK=1
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
-  echo "CheckAlias -> $profile"
+  # echo "CheckAlias -> $profile"
   if ! egrep -q "^$aliasCmd" "$profile" 2>/dev/null; then
     echo $aliasCmd >> "$profile"
     setAlias
@@ -193,12 +193,12 @@ checkUpdate() {
   url=https://raw.githubusercontent.com/nelbren/ICM/refs/heads/main/ICM.bash
   data=$(curl -s $url --connect-timeout 2 --max-time 2 | egrep "MY_VERSION=[0-9]+.[0-9]+$")
   version=$(echo $data | cut -d"=" -f2)
-  #echo $MY_VERSION $version 
+  # echo $MY_VERSION $version 
   if [ -n "$version" ]; then
     if [ "$MY_VERSION" != "$version" ]; then
       printf "💻 ICM ${nR}v${MY_VERSION}${S} ${nW}!= 🌐 ICM ${nG}v${version}${S} -> ${nR}Please update, with: ${Iw}git pull${S}\n"
       while [ true ]; do
-        echo "Do you want me to perform the update? (Y/n)? "
+        echo "Do you want me to do this update? [Y/n]: "
         read resp
         [ -z "$resp" ] && resp=Y
         resp=$(echo $resp | tr [A-Z] [a-z])
@@ -216,6 +216,9 @@ checkUpdate() {
       fi
       exit 1
     fi
+  else
+    echo -e "I can't find the latest version.\nIf internet access was lost due to ICM, use INTERNET_ENABLE to regain access."
+    exit 1
   fi
 }
 checkSpace() {
