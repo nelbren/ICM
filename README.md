@@ -2,7 +2,7 @@
 
 |Version|Date|Updated on OS|Supported on OS|md5sum|
 |--:|--:|:--:|:--:|--:|
-|`5.6`|`2025-08-22 17:32`|🍎|🍎🪟🐧|`17b32cf361bbbc1e820f2a5d624c156b`|
+|`5.7`|`2025-08-22 20:24`|🍎|🍎🪟🐧|`4490eaed3a4bb1612fb9cab3d591f127`|
 
 A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linux** that continuously checks the internet connection, keeps a log of each check, and if it identifies an internet connection, it takes evidence (web access, open ports, ping, access address information, screenshot and clipboard content capture). Upon completion it creates a **TGZ** file with the log and all captured evidence.
 
@@ -12,13 +12,19 @@ A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linu
   
     `git clone https://github.com/nelbren/ICM.git`
 
-2. ## 💿 Switch to the ICM directory:
+2. ## 💿 Switch to the directory 
+   - ### ICM if running alone:
+     `cd ICM`
 
-    `cd ICM`
+   - ### Project
+     `cd PROJECT`
+
+     **NOTE:** Please use `git init` in this directory.
 
 3. ## 🏃 Run the script:
    - ### 🌐 With connection to ICMd
-        `./ICM.bash IP-OF-ICMDd ID`
+     Run the alias:
+        `ICM IP-OF-ICMDd ID`
    - ### 💻 Alone (Without connection to ICMd)
         `./ICM.bash`
 4. ## 🧙 Wait for the magic!
@@ -30,5 +36,16 @@ A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linu
 6. ## Review logs and evidence
 
    In the user's home there is a file called **`ICM.tgz`** with the **log** and **evidence**, sorted by **day** and the **number of execution process**.
+
+7. ## Troubleshooting for **🪟Windows** | **🍎MacOS**
+     - ### 🌐 Enable Internet 
+       Run the alias:
+       `$ INTERNET_ENABLE`
+
+     - ### 🚫 Disable Internet
+       Run the alias:
+       `$ INTERNET_DISABLE`
+
+  
 
 <div style="text-align: center; color: gray;">MADE WITH 💛 BY NELBREN</div>

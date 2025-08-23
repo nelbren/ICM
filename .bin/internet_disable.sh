@@ -45,11 +45,10 @@ fi
 echo "♻️ Reloading anchor '$ANCHOR_NAME'..."
 pfctl -a "$ANCHOR_NAME" -f "$ANCHOR_FILE"
 
-# Verificar y aplicar configuración
-pfctl -nf "$PF_CONF" || { echo "Error en la configuración de pf."; exit 1; }
+pfctl -nf "$PF_CONF" || { echo "Error in pf configuration."; exit 1; }
 
 pfctl -f "$PF_CONF"
 pfctl -e
-echo "Bloqueo activado. Solo $ALLOW_IP tiene salida."
+echo "Lock is on. Only $ALLOW_IP is output."
 
-read x
+# read x

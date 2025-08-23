@@ -1,10 +1,5 @@
 #!/bin/bash
 
-if [ "$EUID" -ne 0 ]; then
-    echo "This script requires superuser privileges. Use sudo."
-    exit 1
-fi
-
 if [ $# -ne 2 ]; then
     echo "Uso: $0 <IP_permitida> <INICIO|FIN>"
     exit 1
@@ -13,16 +8,17 @@ fi
 ALLOW_IP="$1"
 ACTION=$(echo "$2" | tr '[:lower:]' '[:upper:]')
 
-# Ejecutar acción
 case "$ACTION" in
     INICIO)
-        ~/ICM/.bin/internet_disable.sh
+        echo "DOING INICIO"
+        ~/ICM/.bin/internet_disable.sh $ALLOW_IP
         ;;
     FIN)
+        echo "DOING FIN"
         ~/ICM/.bin/internet_enable.sh
         ;;
     *)
-        echo "Acción no reconocida: $ACTION. Usa INICIO o FIN."
+        echo "Unrecognized action: $ACTION. Use INCIO or FIN."
         exit 1
         ;;
 esac

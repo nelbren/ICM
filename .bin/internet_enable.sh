@@ -17,4 +17,4 @@ rm -f "$ANCHOR_FILE"
 
 echo "Blocking disabled. Full internet access restored."
 
-read x
+# read x

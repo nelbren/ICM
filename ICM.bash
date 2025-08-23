@@ -1,19 +1,27 @@
 #!/bin/bash
 # Internet Connection Monitor - nelbren@nelbren.com @ 2025-08-22
-setAlias() {
-  shell=$(basename $SHELL)
+setProfile() {
+    shell=$(basename $SHELL)
   if [ "$shell" == "zsh" ]; then
     profile=~/.zprofile
   else
-    profile=~/.profile
+    if [ $OS == "WINDOWS" ]; then
+      profile=~/.profile
+    else
+      profile=~/.bash_profile
+    fi
   fi
+}
+setAlias() {
+  setProfile
+  echo "[$profile]"
   [ -f $profile ] && source $profile
 }
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.6
+  MY_VERSION=5.7
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -123,12 +131,7 @@ diffSeconds() {
 checkAlias() {
   aliasOK=1
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
-  shell=$(basename $SHELL)
-  if [ "$shell" == "zsh" ]; then
-    profile=~/.zprofile
-  else
-    profile=~/.profile
-  fi
+  echo "CheckAlias -> $profile"
   if ! egrep -q "^$aliasCmd" "$profile" 2>/dev/null; then
     echo $aliasCmd >> "$profile"
     setAlias
@@ -138,10 +141,12 @@ checkAlias() {
     fi
   fi
   scriptExt="sh"
+  useSudo="sudo"
   if [ $OS == "WINDOWS" ]; then
     scriptExt="cmd"
+    useSudo=""
   fi
-  aliasCmd1="alias INTERNET_DISABLE='~/ICM/.bin/internet_disable.${scriptExt}"
+  aliasCmd1="alias INTERNET_DISABLE='${useSudo} ~/ICM/.bin/internet_disable.${scriptExt}"
   aliasCmd2="${aliasCmd1} \$(cat ~/.ICMd_ip.txt)'"
   if ! egrep -q "^$aliasCmd1" "$profile" 2>/dev/null; then
     echo $aliasCmd2 >> "$profile"
@@ -151,7 +156,7 @@ checkAlias() {
       aliasOK=0
     fi
   fi
-  aliasCmd="alias INTERNET_ENABLE='~/ICM/.bin/internet_enable.${scriptExt}'"
+  aliasCmd="alias INTERNET_ENABLE='${useSudo} ~/ICM/.bin/internet_enable.${scriptExt}'"
   if ! egrep -q "^$aliasCmd" "$profile" 2>/dev/null; then
     echo $aliasCmd >> "$profile"
     setAlias
@@ -192,6 +197,23 @@ checkUpdate() {
   if [ -n "$version" ]; then
     if [ "$MY_VERSION" != "$version" ]; then
       printf "💻 ICM ${nR}v${MY_VERSION}${S} ${nW}!= 🌐 ICM ${nG}v${version}${S} -> ${nR}Please update, with: ${Iw}git pull${S}\n"
+      while [ true ]; do
+        echo "Do you want me to perform the update? (Y/n)? "
+        read resp
+        [ -z "$resp" ] && resp=Y
+        resp=$(echo $resp | tr [A-Z] [a-z])
+        if [ "$resp" == "y" -o "$resp" == "n" ]; then
+          break
+        fi
+      done
+      if [ "$resp" == "y" ]; then
+        pushd ~/ICM
+        git pull
+        if [ "$?" == "0" ]; then
+          return
+        fi
+        popd
+      fi
       exit 1
     fi
   fi
