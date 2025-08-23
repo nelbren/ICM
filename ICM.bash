@@ -1,10 +1,19 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-06-24
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-08-22
+setAlias() {
+  shell=$(basename $SHELL)
+  if [ "$shell" == "zsh" ]; then
+    profile=~/.zprofile
+  else
+    profile=~/.profile
+  fi
+  [ -f $profile ] && source $profile
+}
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.5
+  MY_VERSION=5.6
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -16,6 +25,7 @@ setVariables() {
       TIME_INTERVAL=2
       IP=$1
       ID=$2
+      echo $IP > ~/.ICMd_ip.txt
     else
       if [ "$1" == "COMMIT" ]; then
         TIME_INTERVAL=0
@@ -41,6 +51,7 @@ setVariables() {
   checkUpdate
   checkSpace
   checkMD5
+  setAlias
   checkAlias
   setBin
   setLogs $1
@@ -110,6 +121,7 @@ diffSeconds() {
   echo $diffSecs
 }
 checkAlias() {
+  aliasOK=1
   aliasCmd="alias ICM='~/ICM/ICM.bash'"
   shell=$(basename $SHELL)
   if [ "$shell" == "zsh" ]; then
@@ -117,10 +129,40 @@ checkAlias() {
   else
     profile=~/.profile
   fi
-  if ! grep -q "$aliasCmd" "$profile" 2>/dev/null; then
+  if ! egrep -q "^$aliasCmd" "$profile" 2>/dev/null; then
     echo $aliasCmd >> "$profile"
+    setAlias
+    if ! alias ICM 2>/dev/null; then
+       echo "alias ICM not found"
+       aliasOK=0
+    fi
+  fi
+  scriptExt="sh"
+  if [ $OS == "WINDOWS" ]; then
+    scriptExt="cmd"
+  fi
+  aliasCmd1="alias INTERNET_DISABLE='~/ICM/.bin/internet_disable.${scriptExt}"
+  aliasCmd2="${aliasCmd1} \$(cat ~/.ICMd_ip.txt)'"
+  if ! egrep -q "^$aliasCmd1" "$profile" 2>/dev/null; then
+    echo $aliasCmd2 >> "$profile"
+    setAlias
+    if ! alias INTERNET_DISABLE 2>/dev/null; then
+      echo "alias INTERNET_DISABLE not found"
+      aliasOK=0
+    fi
+  fi
+  aliasCmd="alias INTERNET_ENABLE='~/ICM/.bin/internet_enable.${scriptExt}'"
+  if ! egrep -q "^$aliasCmd" "$profile" 2>/dev/null; then
+    echo $aliasCmd >> "$profile"
+    setAlias
+    if ! alias INTERNET_ENABLE 2>/dev/null; then
+      echo "alias INTERNET_ENABLE not found"
+      aliasOK=0
+    fi
+  fi
+  if [ "$aliasOK" == "0" ] ; then
     echo -e "Please log out and log back in to be able to use the ICM alias or manually run:\n"
-    echo -e 'source $profile\n'
+    echo -e "source $profile\n"
     exit 1
   fi
 }
