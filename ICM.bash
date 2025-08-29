@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.9
+  MY_VERSION=6.0
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
