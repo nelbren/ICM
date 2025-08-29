@@ -1,5 +1,5 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-08-22
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-08-29
 setProfile() {
     shell=$(basename $SHELL)
   if [ "$shell" == "zsh" ]; then
@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=5.8
+  MY_VERSION=5.9
   REMOTE=0
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
@@ -56,7 +56,9 @@ setVariables() {
   RUNNING=1
   internetOff=0
   getOSType
-  checkUpdate
+  if [ "$1" != "COMMIT" ]; then
+    checkUpdate
+  fi
   checkSpace
   checkMD5
   setAlias
