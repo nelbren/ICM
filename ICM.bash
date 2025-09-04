@@ -14,15 +14,16 @@ setProfile() {
 }
 setAlias() {
   setProfile
-  echo "[$profile]"
+  # echo "[$profile]"
   [ -f $profile ] && source $profile
 }
 setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=6.0
+  MY_VERSION=6.1
   REMOTE=0
+  USE_GIT=1
   if [ -z "$1" ]; then
     TIME_INTERVAL=2
     IP=""
@@ -34,6 +35,9 @@ setVariables() {
       IP=$1
       ID=$2
       echo $IP > ~/.ICMd_ip.txt
+      if [ "$3" == "NOGIT" ]; then
+        USE_GIT=0
+      fi
     else
       if [ "$1" == "COMMIT" ]; then
         TIME_INTERVAL=0
@@ -174,6 +178,9 @@ checkAlias() {
   fi
 }
 checkGit() {
+  if [ "$USE_GIT" != "1" ]; then
+    return
+  fi
   currentDir=$(pwd)
   currentDir=$(basename "$currentDir")
   if [ "$currentDir" == "ICM" ]; then
@@ -783,6 +790,9 @@ enableInternet() {
   fi
 }
 updateMVC() {
+  if [ "$USE_GIT" == "0" ]; then
+    return
+  fi
   MVC=0
   timestampNow=$(date +'%Y-%m-%d %H:%M:%S')
   ds=$(diffSeconds "$timestampLast" "$timestampNow")
@@ -834,7 +844,7 @@ updateMVC() {
     timestampLast=$timestampNow
   fi
 }
-setVariables $1 $2
+setVariables $1 $2 $3
 logBegin
 disableInternet
 while [ "$RUNNING" == "1" ]; do

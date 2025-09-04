@@ -24,8 +24,10 @@ echo netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
 netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
 
 REM Allow traffic only to the ICMd
-echo netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% protocol=TCP remoteport=8080 enable=yes
-netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% protocol=TCP remoteport=8080 enable=yes
+REM echo netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% protocol=TCP remoteport=8080 enable=yes
+REM netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% protocol=TCP remoteport=8080 enable=yes
+echo netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% enable=yes
+netsh advfirewall firewall add rule name="Allow Local Gateway" dir=out action=allow remoteip=%IP% enable=yes
 
 REM powershell -ExecutionPolicy Bypass -File "fw4instructure.ps1" add
 

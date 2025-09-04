@@ -2,7 +2,7 @@
 
 |Version|Date|Updated on OS|Supported on OS|md5sum|
 |--:|--:|:--:|:--:|--:|
-|`6.0`|`2025-08-29 14:48`|🍎|🍎🪟🐧|`832c0463299c607911da257ea7199db5`|
+|`6.1`|`2025-09-29 04:03`|🪟|🍎🪟🐧|`53f27fdb4ee629190c58daa33e5a0bcf`|
 
 A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linux** that continuously checks the internet connection, keeps a log of each check, and if it identifies an internet connection, it takes evidence (web access, open ports, ping, access address information, screenshot and clipboard content capture). Upon completion it creates a **TGZ** file with the log and all captured evidence.
 
@@ -23,8 +23,15 @@ A bash script for **🪟Windows** (using git bash), **🍎MacOS** and **🐧Linu
 
 3. ## 🏃 Run the script:
    - ### 🌐 With connection to ICMd
-     Run the alias:
-        `ICM IP-OF-ICMDd ID`
+
+     - #### With Git:
+         Run the alias:
+            `ICM IP-OF-ICMDd ID`
+
+     - #### Without Git:
+         Run the alias:
+            `ICM IP-OF-ICMDd ID NOGIT`
+
    - ### 💻 Alone (Without connection to ICMd)
         `./ICM.bash`
 4. ## 🧙 Wait for the magic!
