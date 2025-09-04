@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=6.1
+  MY_VERSION=6.2
   REMOTE=0
   USE_GIT=1
   if [ -z "$1" ]; then
@@ -796,8 +796,7 @@ updateMVC() {
   MVC=0
   timestampNow=$(date +'%Y-%m-%d %H:%M:%S')
   ds=$(diffSeconds "$timestampLast" "$timestampNow")
-  #updateAt=20 #15min * 60secs
-  #updateAt=300 #15min * 60secs
+  #updateAt=30 #15min * 60secs
   updateAt=900 #15min * 60secs
   #echo "'$ds' -gt '$updateAt'"
   #printf "[$ds < $updateAt]"
@@ -813,18 +812,28 @@ updateMVC() {
     fi
     countLines=0
     error=0
+    # COUNT
     while read fileName; do
       lines=$(grep -v -e '^[[:space:]]*$' "$fileName" | wc -l)
-      #echo " -> $lines" >> /tmp/salida.txt
+      # echo " $fileName -> $lines" >> /tmp/salida.txt
       countLines=$((countLines + lines))
       #echo " => $countLines" >> /tmp/salida.txt
+    done < <(
+    find . -type f -iname \*.cpp -o \
+                   -iname \*.h\* -o \
+                   -iname \*.form -o \
+                   -iname \*.java -o \
+                   -iname \*.py -o \
+                   -iname \*.md)
+    # COPY
+    while read fileName; do
       #echo cp $fileName $DIR_MCV
-      dirSrc=$(dirname $fileName)
+      dirSrc=$(dirname "$fileName")
       dirDst="${DIR_MCV}/${dirSrc}"
       if [ "$dirSrc" != "." ]; then
         mkdir -p "$dirDst"
       fi
-      #echo cp $fileName $dirDst
+      # echo cp $fileName $dirDst >> /tmp/salida.txt
       cp "$fileName" "$dirDst"
       if [ "$?" != "0" ]; then
         error=1
@@ -834,7 +843,13 @@ updateMVC() {
                    -iname \*.h\* -o \
                    -iname \*.form -o \
                    -iname \*.java -o \
-                   -iname \*.py)
+                   -iname \*.py -o \
+                   -iname \*.md -o \
+                   -iname \*.png -o \
+                   -iname \*.jpg -o \
+                   -iname \*.jpeg -o \
+                   -iname \*.gif -o \
+                   -iname \*.bmp)
     if [ "$error" == "0" ]; then
       printf "${nG}β"
     else

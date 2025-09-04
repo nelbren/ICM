@@ -25,12 +25,15 @@ ANCHOR_FILE="/etc/pf.anchors/${ANCHOR_NAME}"
 PF_CONF="/etc/pf.conf"
 
 echo "Configuring pf to only allow access to $ALLOW_IP on the $DEFAULT_IFACE interface"
-    
+
+# pass out proto tcp to $ALLOW_IP port 8080
+# pass in quick inet from $ALLOW_IP
+
 cat <<EOF > "$ANCHOR_FILE"
 block out all
 block in all
-pass out proto tcp to $ALLOW_IP port 8080
-pass in quick inet from $ALLOW_IP
+pass out to $ALLOW_IP
+pass in from $ALLOW_IP
 EOF
 
 if ! grep -q "anchor \"$ANCHOR_NAME\"" "$PF_CONF"; then
