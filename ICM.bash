@@ -1,5 +1,5 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-08-29
+# Internet Connection Monitor - nelbren@nelbren.com @ 2025-09-23
 setProfile() {
     shell=$(basename $SHELL)
   if [ "$shell" == "zsh" ]; then
@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=6.2
+  MY_VERSION=6.3
   REMOTE=0
   USE_GIT=1
   if [ -z "$1" ]; then
@@ -227,7 +227,8 @@ checkUpdate() {
     fi
   else
     echo -e "I can't find the latest version.\nIf internet access was lost due to ICM, use INTERNET_ENABLE to regain access."
-    exit 1
+    echo -e "Unable to locate the latest version.\nIf internet access was disabled by ICM, run INTERNET_ENABLE to restore connectivity."
+    # exit 1
   fi
 }
 checkSpace() {
