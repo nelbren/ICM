@@ -1,5 +1,5 @@
 #!/bin/bash
-# Internet Connection Monitor - nelbren@nelbren.com @ 2025-09-23
+# Internet Connection Monitor - nelbren@nelbren.com @ 2026-06-07
 setProfile() {
     shell=$(basename $SHELL)
   if [ "$shell" == "zsh" ]; then
@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=6.3
+  MY_VERSION=6.4
   REMOTE=0
   USE_GIT=1
   if [ -z "$1" ]; then
@@ -81,6 +81,7 @@ setVariables() {
   countInternet=0
   countIA=0
   ARCHIVE=0
+  navegar=0
 }
 getOSType() {
   OS=""
@@ -536,14 +537,18 @@ takeIpInfo() {
 }
 takeScreenshot() {
   if [ -z "$1" ]; then
-    EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
+    EVIDENCE_FILE="$MY_DIR_EVIDENCE_LOG/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT"
   else
-    EVIDENCE_FILE="$1/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT.png"
+    EVIDENCE_FILE="$1/$(date +'%Y-%m-%d_%H-%M-%S')_SCREENSHOT"
   fi
   if [ "$OS" == "WINDOWS" ]; then
-    "$MY_NCMD" cmdwait 0 savescreenshot "$EVIDENCE_FILE"
+    "$MY_NCMD" cmdwait 0 savescreenshotfull "${EVIDENCE_FILE}.png"
+    # "$MY_NCMD" cmdwait 0 savescreenshot "${EVIDENCE_FILE}.png"
   elif [ "$OS" == "MACOS" ]; then
-    screencapture -x $EVIDENCE_FILE
+    num_screens=$(system_profiler SPDisplaysDataType | grep -c "Resolution:")
+    for ((screen=1; screen<=num_screens; screen++)); do
+       screencapture -D "$screen" -x "${EVIDENCE_FILE}_MONITOR_${screen}.png"
+    done 
   elif [ "$OS" == "LINUX" ]; then
     echo "$OS -> screenshot pendiente" > "$MY_FILE_LOG_TEMP"
   else
@@ -551,7 +556,7 @@ takeScreenshot() {
   fi
   #printf "${nY}📷${S}"
   temp0=$(cat "$MY_FILE_LOG_TEMP")
-  temp1="${Iy} 📷 SCREENSHOT: ${EVIDENCE_FILE}${S}\n${nY}${temp0}\n"
+  temp1="${Iy} 📷 SCREENSHOT: ${EVIDENCE_FILE}.png${S}\n${nY}${temp0}\n"
   temp=$temp1
 }
 takeClipboard() {
@@ -740,10 +745,59 @@ checkIA() {
     status="IA"
   fi
 }
+checkCPUandRAM_in_MAC() {
+  cpu_raw=$(ps -Ao pid,%cpu,command | sort -k2 -nr | head -1)
+  ram_raw=$(ps -Ao pid,rss,command | sort -k2 -nr | head -1)
+  # shellcheck disable=SC2016
+  get_exe_name='
+  {
+      pid = $1
+      value = $2
+
+      command = $0
+      sub(/^[[:space:]]*[0-9]+[[:space:]]+[^[:space:]]+[[:space:]]+/, "", command)
+
+      # Quita argumentos tipo: --model, -daemon, etc.
+      sub(/[[:space:]]+-.*$/, "", command)
+
+      n = split(command, parts, "/")
+      exe = parts[n]
+
+      printf "%s|%s|%s", value, exe, pid
+  }
+  '
+
+  cpu_data=$(echo "$cpu_raw" | awk "$get_exe_name")
+  ram_data=$(echo "$ram_raw" | awk "$get_exe_name")
+
+  cpu_value=$(echo "$cpu_data" | cut -d'|' -f1)
+  cpu_exe=$(echo "$cpu_data" | cut -d'|' -f2)
+  cpu_pid=$(echo "$cpu_data" | cut -d'|' -f3)
+
+  ram_rss=$(echo "$ram_data" | cut -d'|' -f1)
+  ram_exe=$(echo "$ram_data" | cut -d'|' -f2)
+  ram_pid=$(echo "$ram_data" | cut -d'|' -f3)
+
+  ram_mb=$(awk "BEGIN { printf \"%.2f\", $ram_rss / 1024 }")
+
+  # echo "⚙️${cpu_exe}|🧠${ram_exe}"
+
+  echo "⚙️${cpu_value}%🏷️${cpu_exe}🆔${cpu_pid}|🧠${ram_mb}MB🏷️${ram_exe}🆔${ram_pid}" >> "$MY_FILE_LOG"
+ echo -e "⚙️${cpu_raw}\n🧠${ram_raw}" >> "$MY_FILE_LOG"
+}
+checkCPUandRAM() {
+  if [ "$OS" == "WINDOWS" ]; then
+    echo "❌ No soportado todavia"
+  elif [ "$OS" == "MACOS" ]; then
+    checkCPUandRAM_in_MAC
+  elif [ "$OS" == "LINUX" ]; then
+    echo "❌ No soportado todavia"
+  fi
+}
 checkValidation() {
   if [ -n "$IP" -a -n "$ID" ]; then
     # echo "countLines -> $countLines"
-    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\", \"countLines\" : \"$countLines\", \"countInternet\" : \"$countInternet\", \"countIA\" : \"$countIA\", \"MVC\" : \"$MVC\" }"
+    data="{\"id\" : \"$ID\", \"OS\" : \"$OS\", \"icmVersion\" : \"$MY_VERSION\", \"status\" : \"$status\", \"countLines\" : \"$countLines\", \"countInternet\" : \"$countInternet\", \"countIA\" : \"$countIA\", \"MVC\" : \"$MVC\", \"CPUandRAM\" : \"$cpu_exe|$ram_exe\"}"
     # echo $data
     curl -s -X POST -H "Content-Type: application/json; charset=utf-8" -d "$data" http://$IP:8080/update --max-time 15 --connect-timeout 5 2>&1 >/dev/null
     if [ "$?" == "0" ]; then
@@ -755,6 +809,11 @@ checkValidation() {
   fi
   if [ "$internet" == "true" -o "$ia" != "0" ]; then
     playSound
+  else
+    if [ "$navegar" == "0" ]; then
+      echo -e "\n\nAcceso concedido 🔓: http://$IP:8080/files\n"
+      navegar=1
+    fi
   fi
 }
 archive() {
@@ -867,6 +926,7 @@ while [ "$RUNNING" == "1" ]; do
   count
   checkInternet
   checkIA
+  checkCPUandRAM
   updateMVC
   checkValidation
   sleep $TIME_INTERVAL
