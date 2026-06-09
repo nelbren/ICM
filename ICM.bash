@@ -21,7 +21,7 @@ setVariables() {
   timestampLast=$(date +'%Y-%m-%d %H:%M:%S')
   firstTime=1
   MY_NAME="Internet Connection Monitor"
-  MY_VERSION=6.4
+  MY_VERSION=6.5
   REMOTE=0
   USE_GIT=1
   if [ -z "$1" ]; then
@@ -395,6 +395,19 @@ getMACWindows() {
   done
   echo "$resumen"
 }
+checkStatus() {
+  response=$(curl -s http://$IP:8080/status/$ID)
+  name=$(echo "$response" |
+      sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+  shared_dir=$(echo "$response" |
+      sed -n 's/.*"shared_dir":\([^,}]*\).*/\1/p')
+  if [ -z "$name" ]; then
+    echo -e "\n${nR}❌ 🆔 $ID not found! 😞\n"
+    exit 5
+  fi
+  echo -e "\n${nG}😎 Welcome $name! ✅\n"
+  # echo "shared_dir=$shared_dir"
+}
 logBegin() {
   #echo -e "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅" | tee -a $MY_FILE_LOG
   printf "${Iw}$(info "•")${S}${nG} 🔜${MY_NAME} v${MY_VERSION} Started✅\n" | tee -a "$MY_FILE_LOG"
@@ -405,9 +418,13 @@ logEnd() {
   #echo -e "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎" | tee -a $MY_FILE_LOG
   printf "${Iw}$(info "•")${S}${nG} 🔚${MY_NAME} v${MY_VERSION} Completed❎${S}\n" | tee -a "$MY_FILE_LOG"
   firstTime=1
-  updateMVC 
+  updateMVC
   enableInternet
-  archive
+  echo -e "\n${nY}❓Did I finish the job [NO/yes]? "
+  read response
+  if [ "$response" == "yes" ]; then
+    archive
+  fi
 }
 getNetwork() {
   if [ "$OS" == "WINDOWS" ]; then
@@ -547,7 +564,7 @@ takeScreenshot() {
   elif [ "$OS" == "MACOS" ]; then
     num_screens=$(system_profiler SPDisplaysDataType | grep -c "Resolution:")
     for ((screen=1; screen<=num_screens; screen++)); do
-       screencapture -D "$screen" -x "${EVIDENCE_FILE}_MONITOR_${screen}.png"
+      screencapture -D "$screen" -x "${EVIDENCE_FILE}_MONITOR_${screen}.png"
     done 
   elif [ "$OS" == "LINUX" ]; then
     echo "$OS -> screenshot pendiente" > "$MY_FILE_LOG_TEMP"
@@ -783,11 +800,35 @@ checkCPUandRAM_in_MAC() {
   # echo "⚙️${cpu_exe}|🧠${ram_exe}"
 
   echo "⚙️${cpu_value}%🏷️${cpu_exe}🆔${cpu_pid}|🧠${ram_mb}MB🏷️${ram_exe}🆔${ram_pid}" >> "$MY_FILE_LOG"
- echo -e "⚙️${cpu_raw}\n🧠${ram_raw}" >> "$MY_FILE_LOG"
+  echo -e "⚙️${cpu_raw}\n🧠${ram_raw}" >> "$MY_FILE_LOG"
+}
+checkCPUandRAM_in_WINDOWS() {
+  cpu_raw=$(powershell.exe -NoProfile -Command \
+    "\$p = Get-Process | Where-Object { \$_.CPU -ne \$null -and \$_.ProcessName -ne 'Idle' } | Sort-Object CPU -Descending | Select-Object -First 1; \$w = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + \$p.Id); '{0}|{1}|{2}|{3}' -f \$p.Id, ([math]::Round(\$p.CPU, 2)), \$p.ProcessName, \$w.ExecutablePath" \
+    | tr -d '\r')
+
+  ram_raw=$(powershell.exe -NoProfile -Command \
+    "\$p = Get-Process | Where-Object { \$_.ProcessName -ne 'Memory Compression' -and \$_.ProcessName -ne 'System' -and \$_.ProcessName -ne 'Idle' -and \$_.Path -ne \$null } | Sort-Object WorkingSet64 -Descending | Select-Object -First 1; \$w = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + \$p.Id); '{0}|{1}|{2}|{3}' -f \$p.Id, ([math]::Round(\$p.WorkingSet64 / 1MB, 2)), \$p.ProcessName, \$w.ExecutablePath" \
+    | tr -d '\r')
+
+  cpu_pid=$(echo "$cpu_raw" | cut -d'|' -f1)
+  cpu_value=$(echo "$cpu_raw" | cut -d'|' -f2)
+  cpu_exe=$(echo "$cpu_raw" | cut -d'|' -f3)
+  cpu_path=$(echo "$cpu_raw" | cut -d'|' -f4-)
+
+  ram_pid=$(echo "$ram_raw" | cut -d'|' -f1)
+  ram_mb=$(echo "$ram_raw" | cut -d'|' -f2)
+  ram_exe=$(echo "$ram_raw" | cut -d'|' -f3)
+  ram_path=$(echo "$ram_raw" | cut -d'|' -f4-)
+
+  printf '%s\n' \
+    "⚙️${cpu_value}🏷️${cpu_exe}🆔${cpu_pid}|🧠${ram_mb}MB🏷️${ram_exe}🆔${ram_pid}" \
+    >> "$MY_FILE_LOG"
+  printf '⚙️%s\n🧠%s\n' "$cpu_raw" "$ram_raw" >> "$MY_FILE_LOG"
 }
 checkCPUandRAM() {
   if [ "$OS" == "WINDOWS" ]; then
-    echo "❌ No soportado todavia"
+    checkCPUandRAM_in_WINDOWS
   elif [ "$OS" == "MACOS" ]; then
     checkCPUandRAM_in_MAC
   elif [ "$OS" == "LINUX" ]; then
@@ -810,8 +851,8 @@ checkValidation() {
   if [ "$internet" == "true" -o "$ia" != "0" ]; then
     playSound
   else
-    if [ "$navegar" == "0" ]; then
-      echo -e "\n\nAcceso concedido 🔓: http://$IP:8080/files\n"
+    if [ "$shared_dir" == "1" -a "$navegar" == "0" ]; then
+      echo -e "\n\n${nG}Access granted 🔓: http://$IP:8080/files\n"
       navegar=1
     fi
   fi
@@ -920,6 +961,7 @@ updateMVC() {
   fi
 }
 setVariables $1 $2 $3
+checkStatus
 logBegin
 disableInternet
 while [ "$RUNNING" == "1" ]; do
